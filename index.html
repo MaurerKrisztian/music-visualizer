@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Audio Visualizer</title>
+    <style>
+        #canvas {
+            border: 1px solid black;
+        }
+    </style>
+</head>
+<body>
+    <input type="file" id="audioFile" accept="audio/*" />
+    <input type="file" id="imageFile" accept="image/*" /><br/>
+
+    <label for="baseRadius">Circle Base Radius:</label>
+    <input type="number" id="baseRadius" value="22" /><br/>
+
+    <label for="growthFactor">Circle Growth Factor:</label>
+    <input type="number" id="growthFactor" value="222" /><br/>
+
+    <label for="circleColor">Circle Color:</label>
+    <input type="color" id="circleColor" value="#FFFFFF" /><br/>
+
+    <label for="barWidthMultiplier">Bar Width Multiplier:</label>
+    <input type="number" id="barWidthMultiplier" value="55" /><br/>
+
+    <label for="barLengthMsultiplier">Bar Length Multiplier:</label>
+    <input type="number" id="barLengthMultiplier" value="1" /><br/>
+
+    <canvas id="canvas"></canvas>
+    <script src="visualizer.js"></script>
+</body>
+</html>
