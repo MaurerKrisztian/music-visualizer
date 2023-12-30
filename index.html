@@ -7,6 +7,61 @@
         #canvas {
             border: 1px solid black;
         }
+
+        .media-player {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .player-button {
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .player-button:hover {
+            background-color: #0056b3;
+        }
+
+        /* General styling for the slider */
+        .seek-bar {
+            -webkit-appearance: none;  /* Removes default webkit styles */
+            appearance: none;
+            width: 100%; /* Full width of the container */
+            height: 10px; /* Specified height for the track */
+            background: #ddd; /* Grey background */
+            outline: none; /* Remove default focus outline */
+        }
+
+        /* Styling for the slider thumb (draggable part) */
+        .seek-bar::-webkit-slider-thumb {
+            -webkit-appearance: none; /* Removes default webkit styles for the thumb */
+            width: 20px; /* Width of the thumb */
+            height: 20px; /* Height of the thumb */
+            background: #4CAF50; /* Green background for the thumb */
+            cursor: pointer; /* Cursor changes to pointer when hovering over the thumb */
+            border-radius: 50%; /* Makes the thumb circular */
+        }
+
+        .seek-bar::-moz-range-thumb {
+            width: 20px; /* Width of the thumb */
+            height: 20px; /* Height of the thumb */
+            background: #4CAF50; /* Green background for the thumb */
+            cursor: pointer; /* Cursor changes to pointer when hovering over the thumb */
+            border-radius: 50%; /* Makes the thumb circular */
+        }
+
+
+
     </style>
 </head>
 <body>
@@ -28,7 +83,16 @@
     <label for="barLengthMsultiplier">Bar Length Multiplier:</label>
     <input type="number" id="barLengthMultiplier" value="1" /><br/>
 
+
+    <div class="media-player">
+        <button id="playButton" class="player-button">Play</button>
+        <button id="pauseButton" class="player-button">Pause</button>
+        <input type="range" id="seekBar" class="seek-bar" min="0" max="100" value="0">
+    </div>
+
     <canvas id="canvas"></canvas>
+
+
     <script src="visualizer.js"></script>
 </body>
 </html>

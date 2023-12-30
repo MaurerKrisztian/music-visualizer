@@ -49,16 +49,44 @@ window.onload = function() {
         }
     };
 
+    const playButton = document.getElementById('playButton');
+    const pauseButton = document.getElementById('pauseButton');
+    const seekBar = document.getElementById('seekBar');
+
+    let audio;
+    let animationId;
+
+    // Initialize audio controls
+    function setupAudioControls() {
+        playButton.onclick = () => audio.play();
+        pauseButton.onclick = () => audio.pause();
+
+        seekBar.oninput = function() {
+            const seekTime = audio.duration * (seekBar.value / 100);
+            audio.currentTime = seekTime;
+        };
+
+        audio.ontimeupdate = function() {
+            const progress = (audio.currentTime / audio.duration) * 100;
+            seekBar.value = progress;
+        };
+    }
+
     fileInput.onchange = function() {
         const files = this.files;
         if (files.length === 0) return;
 
+        if (audio) {
+            audio.pause();
+            cancelAnimationFrame(animationId);
+        }
+
         // Audio setup
         const audioContext = new AudioContext();
-        const audio = new Audio(URL.createObjectURL(files[0]));
+        audio = new Audio(URL.createObjectURL(files[0]));
+        setupAudioControls();
         audio.crossOrigin = "anonymous";
         audio.load();
-        audio.play();
 
         const source = audioContext.createMediaElementSource(audio);
         const analyser = audioContext.createAnalyser();
