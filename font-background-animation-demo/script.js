@@ -251,12 +251,30 @@ function updateBackground() {
 
 function drawBackground() {
     if (background.image) {
-        // Draw the background image
-        ctx.drawImage(background.image, 0, 0, canvas.width, canvas.height);
+        let shakeIntensity = parseFloat(document.getElementById('shakeIntensity').value);
+
+        // Get the average volume from the audio data
+        analyzer.getByteFrequencyData(dataArray);
+        let average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+
+        // Calculate scale and rotation angle based on the beat and shake intensity
+        let scale = 1 + average / 512 * shakeIntensity;
+        let angle = Math.sin(Date.now() * 0.005) * (average / 512) * (shakeIntensity / 10); // Minor rotation
+
+        // Save the current context state
+        ctx.save();
+
+        // Move to the center of the canvas, rotate and scale the image
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate(angle);
+        ctx.scale(scale, scale);
+        ctx.drawImage(background.image, -canvas.width / 2, -canvas.height / 2, canvas.width, canvas.height);
+
+        // Restore the context to its original state
+        ctx.restore();
     } else {
         // Fill with the background color
         ctx.fillStyle = background.color;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 }
-

@@ -17,7 +17,7 @@
 <div id="fontSelector">
     <!-- Font examples will be added here -->
 </div>
-<input type="text" id="textInput" placeholder="Enter text" value="RAVE DEMON" />
+<input type="text" id="textInput" placeholder="Enter text" value="R A V E   D E M O N" />
 <input type="number" id="fontSizeInput" placeholder="Font size" value="20" />
 <input type="color" id="fontColorInput" value="#000000" />
 <input type="color" id="borderColorInput" value="#FF0000" /> <!-- Default red border -->
@@ -37,9 +37,9 @@ Y Coordinate: <input type="range" id="yCoordinate" min="0" max="500" value="250"
     Smoothness (ms): <input type="number" id="smoothness" value="22" min="10" />
 </div>
 <HR>
-Circle Color: <input type="color" id="circleColor" value="#ff0000" />
+Circle Color: <input type="color" id="circleColor" value="#ffffff" />
 Circle Speed Multiplier: <input type="number" id="circleSpeed" value="1" min="0.1" step="0.1" />
-Circle Size: <input type="number" id="circleSize" value="3" min="1" />
+Circle Size: <input type="number" id="circleSize" value="2" min="1" />
 Beat Speed-Up Multiplier: <input type="number" id="beatSpeedUp" value="5" min="1" step="1" />
 Number of Circles: <input type="number" id="numberOfCircles" value="20" min="1" step="1" />
 Zigzag Smoothness: <input type="range" id="zigzagSmoothness" value="1" min="1" max="10" step="1" />
@@ -50,8 +50,10 @@ Background Image: <input type="file" id="backgroundImageInput" accept="image/*" 
 Background Color: <input type="color" id="backgroundColorInput" value="#000000" onchange="updateBackground()" />
 
 <HR>
-<canvas id="canvas" width="500" height="333"></canvas>
+Shake Intensity: <input type="range" id="shakeIntensity" value="0.5" min="0" max="5" step="0.01" />
 
+<HR>
+<canvas id="canvas" width="1920" height="1080"></canvas>
 
 <script src="script.js"></script>
 </body>
