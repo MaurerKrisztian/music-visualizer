@@ -1,0 +1,58 @@
+
+
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Music Responsive Text</title>
+    <style>
+        canvas {
+            border: 1px solid black;
+            width: 55%;
+        }
+    </style>
+</head>
+<body>
+<div id="fontSelector">
+    <!-- Font examples will be added here -->
+</div>
+<input type="text" id="textInput" placeholder="Enter text" value="RAVE DEMON" />
+<input type="number" id="fontSizeInput" placeholder="Font size" value="20" />
+<input type="color" id="fontColorInput" value="#000000" />
+<input type="color" id="borderColorInput" value="#FF0000" /> <!-- Default red border -->
+Border Thickness: <input type="number" id="borderThickness" value="2" min="1" />
+
+
+X Coordinate: <input type="range" id="xCoordinate" min="0" max="500" value="250" />
+Y Coordinate: <input type="range" id="yCoordinate" min="0" max="500" value="250" />
+<input type="file" id="audioInput" accept="audio/*" />
+<button id="playAudioButton">Play Audio</button>
+
+
+<HR>
+<!-- Animation Controls -->
+<div>
+    Max Size Multiplier: <input type="number" id="maxSizeMultiplier" value="33" min="1" />
+    Smoothness (ms): <input type="number" id="smoothness" value="22" min="10" />
+</div>
+<HR>
+Circle Color: <input type="color" id="circleColor" value="#ff0000" />
+Circle Speed Multiplier: <input type="number" id="circleSpeed" value="1" min="0.1" step="0.1" />
+Circle Size: <input type="number" id="circleSize" value="3" min="1" />
+Beat Speed-Up Multiplier: <input type="number" id="beatSpeedUp" value="5" min="1" step="1" />
+Number of Circles: <input type="number" id="numberOfCircles" value="20" min="1" step="1" />
+Zigzag Smoothness: <input type="range" id="zigzagSmoothness" value="1" min="1" max="10" step="1" />
+
+
+<HR>
+Background Image: <input type="file" id="backgroundImageInput" accept="image/*" onchange="updateBackground()" />
+Background Color: <input type="color" id="backgroundColorInput" value="#000000" onchange="updateBackground()" />
+
+<HR>
+<canvas id="canvas" width="500" height="333"></canvas>
+
+
+<script src="script.js"></script>
+</body>
+</html>
