@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import animateText from "./elements/animateText.ts";
 import {animateCircles, initializeCircles} from "./elements/circleAnimation.ts";
-import {animateBackground} from "./elements/backgroundAnimation.ts";
+import {animateBackground, setBackgroundImage} from "./elements/backgroundAnimation.ts";
 import {IBackgroundSettings, ICircleSettings, ITextSettings, loadOptions, save} from "./elements/saveLoad.ts";
+import AudioControls from "./components/AudioControls.tsx";
+import defaultAudio from './assets/music.mp3';
+import Recorder from "./components/Recorder.tsx"; // Adjust the path as necessary
 
 const App: React.FC = () => {
     const [file, setFile] = useState<File | null>(null);
@@ -46,6 +49,7 @@ const App: React.FC = () => {
 
     const animationFrameRef = useRef<number | null>(null);
 
+
     const predefinedFonts = ['Arial', 'Verdana', 'Times New Roman', 'Georgia', 'Courier New'];
 
 
@@ -59,13 +63,15 @@ const App: React.FC = () => {
         font: boolean;
         circle: boolean;
         background: boolean;
+        render: boolean;
     }
 
     const [settingsVisibility, setSettingsVisibility] = useState<ISettingsVisibility>({
         text: false,
         font: false,
         circle: false,
-        background: false
+        background: false,
+        render: false,
     });
     const toggleSettings = (setting: keyof ISettingsVisibility) => {
         setSettingsVisibility(prevSettings => ({
@@ -90,12 +96,30 @@ const App: React.FC = () => {
     };
 
 
-    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const fetchDefaultAudioFile = async () => {
+        try {
+            const response = await fetch(defaultAudio);
+            const blob = await response.blob();
+            const defaultFile = new File([blob], 'defaultMusic.mp3', { type: 'audio/mpeg' });
+            return defaultFile;
+        } catch (error) {
+            console.error('Error fetching default audio file:', error);
+            return null;
+        }
+    };
+
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const files = event.target.files;
         if (files) {
             const audioURL = URL.createObjectURL(files[0]);
             audioRef.current.src = audioURL;
             setFile(files[0]);
+        }else {
+            console.log("set file")
+            const defaultFile = await fetchDefaultAudioFile();
+            audioRef.current.src = defaultAudio;
+            setFile(null);
+            setFile(defaultFile);
         }
     };
 
@@ -111,7 +135,16 @@ const App: React.FC = () => {
         textSettingsRef.current = options.text;
     }
 
-    const handlePlay = () => {
+    const handlePlay = async () => {
+        if (!file){
+            console.log("set file")
+            const defaultFile = await fetchDefaultAudioFile();
+            audioRef.current.src = defaultAudio;
+            setFile(null);
+            setFile(defaultFile);
+        }
+
+
         if (!audioContextRef.current) {
             audioContextRef.current = new AudioContext();
             const track = audioContextRef.current.createMediaElementSource(audioRef.current);
@@ -120,6 +153,7 @@ const App: React.FC = () => {
             analyserRef.current.connect(audioContextRef.current.destination);
         }
 
+        audioRef.current.playbackRate =  1
         audioRef.current.play()
             .then(() => {
                 setIsPlaying(true);
@@ -184,6 +218,8 @@ const App: React.FC = () => {
         const file = event.target.files[0];
         const imageUrl = URL.createObjectURL(file);
 
+        setBackgroundImage(imageUrl);
+
         backgroundSettingsRef.current.backgroundImage = imageUrl;
         console.log(backgroundSettingsRef.current.backgroundImage)
     };
@@ -200,20 +236,76 @@ const App: React.FC = () => {
     }, []);
 
 
-    return (
-        <div className="container">
+    const resolutions = {
+        "420p": { width: 640, height: 420 },
+        "HD": { width: 1280, height: 720 },
+        "FullHD": { width: 1920, height: 1080 },
+        "2K": { width: 2560, height: 1440 }
+    };
+    const [resolution, setResolution] = useState("FullHD");
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (canvas && resolutions[resolution]) {
+            const { width, height } = resolutions[resolution];
+            canvas.width = width;
+            canvas.height = height;
+            // You may need to reinitialize or redraw your canvas content here
+        }
+    }, [resolution]);
 
+    const handleResolutionChange = (event) => {
+        setResolution(event.target.value);
+    };
+
+    return (
+        <div className="container" >
             <div style={{textAlign: 'right', margin: '10px'}}>
 
-                <button onClick={handleSave} style={{margin: '5px'}}>Save</button>
+                <button onClick={handleSave} >Save</button>
                 <button onClick={handleLoad} style={{margin: '5px'}}>Load</button>
             </div>
 
+
+            {/*<div className="app-container">*/}
+            {/*    <label>*/}
+            {/*        Canvas Resolution:*/}
+            {/*        <select value={resolution} onChange={handleResolutionChange}>*/}
+            {/*            {Object.keys(resolutions).map(res => (*/}
+            {/*                <option key={res} value={res}>{res}</option>*/}
+            {/*            ))}*/}
+            {/*        </select>*/}
+            {/*    </label>*/}
+            {/*</div>*/}
+
             <div className="control-group">
                 <input type="file" onChange={handleFileChange} accept="audio/*"/>
+                <div className="container">
+                    {/* ... other components and content */}
+                    <AudioControls audioRef={audioRef}/>
+
+                    {file && <Recorder key={file.name} audioRef={audioRef} canvasRef={canvasRef}/>}
+                    {/* ... other components and content */}
+                </div>
                 {/*{file && !isPlaying && <button onClick={handlePlay}>Play</button>}*/}
-                <button onClick={handlePlay}>Play</button>
+                <button onClick={handlePlay}>Start visualize</button>
             </div>
+
+
+            <div className="group-header" onClick={() => toggleSettings("render")}>
+                Render Settings
+            </div>
+            {settingsVisibility.render && (
+                <div className="settings-group">
+                    <label>
+                        Canvas Resolution:
+                        <select value={resolution} onChange={handleResolutionChange}>
+                            {Object.keys(resolutions).map(res => (
+                                <option key={res} value={res}>{res}</option>
+                            ))}
+                        </select>
+                    </label>
+                </div>
+            )}
 
             <div className="group-header" onClick={() => toggleSettings("text")}>
                 Text Settings
@@ -342,9 +434,10 @@ const App: React.FC = () => {
 
             {/* Repeat for other groups as needed */}
 
-            <canvas ref={canvasRef} width="800" height="600"></canvas>
+            <canvas ref={canvasRef} style={{width: "80%", height: "auto"}} width="1920" height="1080"></canvas>
             <audio ref={audioRef} crossOrigin="anonymous"/>
         </div>
+
     );
 
 
