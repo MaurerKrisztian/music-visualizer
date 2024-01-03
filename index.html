@@ -1,88 +1,13 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Audio Visualizer</title>
-    <style>
-        #canvas {
-            border: 1px solid black;
-            width: 100%;
-            height: auto;
-        }
-        .container {
-            margin: 20px;
-        }
-        .control-group {
-            margin-bottom: 10px;
-        }
-    </style>
-</head>
-<body>
-<div class="container">
-    <div class="control-group">
-        <label for="audioFile">Audio File:</label>
-        <input type="file" id="audioFile" accept="audio/*">
-    </div>
-
-    <div class="control-group">
-        <label for="imageFile">Circle Image:</label>
-        <input type="file" id="imageFile" accept="image/*">
-    </div>
-
-    <div class="control-group">
-        <label for="backgroundImageFile">Background Image:</label>
-        <input type="file" id="backgroundImageFile" accept="image/*">
-    </div>
-
-    <div class="control-group">
-        <label for="resolutionSelect">Resolution:</label>
-        <select id="resolutionSelect">
-            <option value="HD">HD (1280x720)</option>
-            <option value="FullHD">Full HD (1920x1080)</option>
-        </select>
-    </div>
-
-    <div class="control-group">
-        <label for="baseRadius">Circle Base Radius:</label>
-        <input type="number" id="baseRadius" value="22">
-    </div>
-
-    <div class="control-group">
-        <label for="growthFactor">Circle Growth Factor:</label>
-        <input type="number" id="growthFactor" value="222">
-    </div>
-
-    <div class="control-group">
-        <label for="circleColor">Circle Color:</label>
-        <input type="color" id="circleColor" value="#006400">
-    </div>
-
-    <div class="control-group">
-        <label for="barWidthMultiplier">Bar Width Multiplier:</label>
-        <input type="number" id="barWidthMultiplier" value="55">
-    </div>
-
-    <div class="control-group">
-        <label for="barLengthMultiplier">Bar Length Multiplier:</label>
-        <input type="number" id="barLengthMultiplier" value="1">
-    </div>
-
-    <div class="control-group">
-        <label for="bitrate">Bitrate (bps):</label>
-        <input type="number" id="bitrate" value="2500000">
-    </div>
-
-    <div class="control-group">
-        <label for="fps">FPS:</label>
-        <input type="number" id="fps" value="30">
-    </div>
-
-    <button id="playButton">Play</button>
-    <button id="downloadButton">Download</button>
-
-    <canvas id="canvas"></canvas>
-</div>
-
-<script src="visualizer.js"></script> <!-- Make sure this points to your JavaScript file -->
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vite + React + TS</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>
