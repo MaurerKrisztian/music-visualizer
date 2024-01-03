@@ -23,6 +23,8 @@ export interface ITextSettings {
     fontColor: string,
     textInput: string,
     selectedFont: string,
+    x: number;  // X coordinate for the text
+    y: number;  // Y coordinate for the text
 }
 
 export interface IBackgroundSettings {

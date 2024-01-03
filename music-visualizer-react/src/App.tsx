@@ -6,12 +6,31 @@ import {IBackgroundSettings, ICircleSettings, ITextSettings, loadOptions, save} 
 import AudioControls from "./components/AudioControls.tsx";
 import defaultAudio from './assets/music.mp3';
 import Recorder from "./components/Recorder.tsx";
-import {drawMusicVisualization, MusicVisualizationSettings} from "./elements/circleBarVisuaalization.ts"; // Adjust the path as necessary
+import {
+    CircleSettings,
+    drawMusicVisualization,
+    MusicVisualizationSettings
+} from "./elements/circleBarVisuaalization.ts"; // Adjust the path as necessary
 
 const App: React.FC = () => {
     const [file, setFile] = useState<File | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
 
+
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const audioRef = useRef<HTMLAudioElement>(new Audio());
+    const audioContextRef = useRef<AudioContext | null>(null);
+    const analyserRef = useRef<AnalyserNode | null>(null);
+    const dataArrayRef = useRef<Uint8Array | null>(null);
+
+    const animationFrameRef = useRef<number | null>(null);
+
+    const resolutions = {
+        "420p": { width: 640, height: 420 },
+        "HD": { width: 1280, height: 720 },
+        "FullHD": { width: 1920, height: 1080 },
+        "2K": { width: 2560, height: 1440 }
+    };
 
     const textSettingsRef = useRef<ITextSettings>({
         maxSizeMultiplier: 55,
@@ -22,6 +41,8 @@ const App: React.FC = () => {
         fontColor: '#000000',
         textInput: 'Sample Text',
         selectedFont: 'Arial',
+        x: resolutions.FullHD.width  / 2, // Default X coordinate
+        y: resolutions.FullHD.height / 4, // Default Y coordinate
     });
 
 
@@ -42,11 +63,14 @@ const App: React.FC = () => {
     });
 
 
-    const musicVisSettingsRef = useRef({
+    const musicVisSettingsRef = useRef<MusicVisualizationSettings>({
         circle: {
             baseRadius: 22,
             growthFactor: 222,
-            color: '#006400'
+            color: '#006400',
+            // image: null,
+            imageX: resolutions.FullHD.width  / 2, // Default X coordinate
+            imageY: resolutions.FullHD.height / 2, // Default Y coordinate
         },
         bars: {
             widthMultiplier: 155,
@@ -66,13 +90,6 @@ const App: React.FC = () => {
     };
 
 
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const audioRef = useRef<HTMLAudioElement>(new Audio());
-    const audioContextRef = useRef<AudioContext | null>(null);
-    const analyserRef = useRef<AnalyserNode | null>(null);
-    const dataArrayRef = useRef<Uint8Array | null>(null);
-
-    const animationFrameRef = useRef<number | null>(null);
 
 
     const predefinedFonts = ['Arial', 'Verdana', 'Times New Roman', 'Georgia', 'Courier New'];
@@ -221,13 +238,6 @@ const App: React.FC = () => {
             }
 
 
-            animateText(
-                ctx,
-                analyserRef.current,
-                dataArrayRef.current,
-                textSettingsRef.current
-            );
-
 
 
             animateCircles(ctx, circles, analyserRef.current, dataArrayRef.current, circleAnimationSettingsRef.current);
@@ -239,6 +249,16 @@ const App: React.FC = () => {
             const dataArray = dataArrayRef.current //new Uint8Array(bufferLength);
 
             drawMusicVisualization(ctx, bufferLength, dataArray,  musicVisSettingsRef.current);
+
+
+
+            animateText(
+                ctx,
+                analyserRef.current,
+                dataArrayRef.current,
+                textSettingsRef.current
+            );
+
 
             animationFrameRef.current = requestAnimationFrame(animate);
         };
@@ -271,12 +291,6 @@ const App: React.FC = () => {
     }, []);
 
 
-    const resolutions = {
-        "420p": { width: 640, height: 420 },
-        "HD": { width: 1280, height: 720 },
-        "FullHD": { width: 1920, height: 1080 },
-        "2K": { width: 2560, height: 1440 }
-    };
     const [resolution, setResolution] = useState("FullHD");
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -288,9 +302,27 @@ const App: React.FC = () => {
         }
     }, [resolution]);
 
+    const handleImageChange = (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const newImage = new Image();
+                newImage.onload = () => {
+                    musicVisSettingsRef.current.circle.image = newImage;
+                };
+                newImage.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
     const handleResolutionChange = (event) => {
         setResolution(event.target.value);
     };
+
+    const canvasWidth = canvasRef.current?.width || 0;
+    const canvasHeight = canvasRef.current?.height || 0;
 
     return (
         <div className="container">
@@ -335,7 +367,32 @@ const App: React.FC = () => {
                             onChange={handleSettingChange}
                         />
                     </label>
-
+                    <label>
+                        Circle Image:
+                        <input type="file" onChange={handleImageChange} accept="image/*"/>
+                    </label>
+                    <label>
+                        X Coordinate:
+                        <input
+                            type="range"
+                            name="circle.imageX"
+                            min="0"
+                            max={canvasWidth}
+                            defaultValue={canvasWidth / 2}
+                            onChange={handleSettingChange}
+                        />
+                    </label>
+                    <label>
+                        Y Coordinate:
+                        <input
+                            type="range"
+                            name="circle.imageY"
+                            min="0"
+                            max={canvasHeight}
+                            defaultValue={musicVisSettingsRef.current.circle.imageY}
+                            onChange={handleSettingChange}
+                        />
+                    </label>
 
                     {/* Bar Settings */}
                     <label>
@@ -399,6 +456,28 @@ const App: React.FC = () => {
                         Text:
                         <input type="text" defaultValue="Sample Text"
                                onChange={e => textSettingsRef.current.textInput = e.target.value}/>
+                    </label>
+                    <label>
+                        Text X Coordinate:
+                        <input
+                            type="range"
+                            name="text.x"
+                            min="0"
+                            max={canvasWidth}
+                            defaultValue="0"
+                            onChange={(e) => textSettingsRef.current.x = parseInt(e.target.value)}
+                        />
+                    </label>
+                    <label>
+                        Text Y Coordinate:
+                        <input
+                            type="range"
+                            name="text.y"
+                            min="0"
+                            max={canvasHeight}
+                            defaultValue="0"
+                            onChange={(e) => textSettingsRef.current.y = parseInt(e.target.value)}
+                        />
                     </label>
                     <label>
                         Max Size Multiplier:

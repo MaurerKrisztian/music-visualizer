@@ -10,6 +10,8 @@ export interface CircleSettings {
     growthFactor: number;
     color: string;
     image?: HTMLImageElement; // Optional, can be undefined or an HTMLImageElement
+    imageX: number; // X coordinate for the image
+    imageY: number; // Y coordinate for the image
 }
 
 export interface MusicVisualizationSettings {
@@ -17,12 +19,13 @@ export interface MusicVisualizationSettings {
     bars: BarSettings;
 }
 
-
 export const drawMusicVisualization = (ctx, bufferLength, dataArray, settings: MusicVisualizationSettings) => {
     const canvasWidth = ctx.canvas.width;
     const canvasHeight = ctx.canvas.height;
-    const centerX = canvasWidth / 2;
-    const centerY = canvasHeight / 2;
+    // const centerX = canvasWidth / 2 + settings.circle.imageX; // Add X offset
+    // const centerY = canvasHeight / 2 + settings.circle.imageY; // Add Y offset
+    const centerX = settings.circle.imageX;
+    const centerY = settings.circle.imageY;
     let radius = settings.circle.baseRadius;
 
     for (let i = 0; i < bufferLength; i++) {
@@ -59,5 +62,3 @@ export const drawMusicVisualization = (ctx, bufferLength, dataArray, settings: M
         radius += barHeight / settings.circle.growthFactor;
     }
 };
-
-
