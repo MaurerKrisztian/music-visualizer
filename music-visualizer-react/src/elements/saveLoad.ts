@@ -20,6 +20,25 @@ export interface ISaveOptions {
         color: string;
     }
 }
+
+export interface ICircleSettings {
+    circleSize: number,
+    circleSpeed: number,
+    circleColor: string,
+    numberOfCircles: number,
+    beatSpeedUp: number,
+    zigzagSmoothness: number
+}
+export interface ITextSettings {
+    maxSizeMultiplier: number,
+    smoothness: number,
+    borderColor: string,
+    borderThickness: number,
+    fontSize: number,
+    fontColor: string,
+    textInput: string,
+    selectedFont: string,
+}
 export function save(options: ISaveOptions){
     const jsonOptions = JSON.stringify(options);
     localStorage.setItem("save", jsonOptions);

@@ -2,20 +2,33 @@ import React, { useState, useEffect, useRef } from 'react';
 import animateText from "./elements/animateText.ts";
 import {animateCircles, initializeCircles} from "./elements/circleAnimation.ts";
 import {animateBackground} from "./elements/backgroundAnimation.ts";
+import {ICircleSettings, ITextSettings} from "./elements/saveLoad.ts";
 
 const App: React.FC = () => {
     const [file, setFile] = useState<File | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
 
-    const maxSizeMultiplierRef = useRef<number>(55);
-    const smoothnessRef = useRef<number>(100);
-    const borderColorRef = useRef<string>('#000000');
-    const borderThicknessRef = useRef<number>(1);
-    const fontSizeRef = useRef<number>(20);
-    const fontColorRef = useRef<string>('#000000');
-    const textInputRef = useRef<string>('Sample Text');
-    // Ref for the selected font
-    const selectedFontRef = useRef<string>('Arial');
+
+    const textSettingsRef = useRef<ITextSettings>({
+        maxSizeMultiplier: 55,
+        smoothness: 100,
+        borderColor: '#000000',
+        borderThickness: 1,
+        fontSize: 20,
+        fontColor: '#000000',
+        textInput: 'Sample Text',
+        selectedFont: 'Arial',
+    });
+
+
+    const circleAnimationSettingsRef = useRef<ICircleSettings>({
+        circleSize: 10,
+        circleSpeed: 1,
+        circleColor: '#d3d3d3',
+        numberOfCircles: 5,
+        beatSpeedUp: 12,
+        zigzagSmoothness: 1
+    });
 
 
 
@@ -30,7 +43,6 @@ const App: React.FC = () => {
     const predefinedFonts = ['Arial', 'Verdana', 'Times New Roman', 'Georgia', 'Courier New'];
 
 
-    // const backgroundTypeRef = useRef('color'); // 'color' or 'image'
     const [backgroundType, setBackgroundType] = useState("color"); // Initial state is set to "color"
     const handleChange = (e) => {
         setBackgroundType(e.target.value); // Update the state when the select value changes
@@ -41,27 +53,28 @@ const App: React.FC = () => {
     const backgroundImageRef = useRef('');
     const shakeIntensityRef = useRef(0);
 
-    // Refs for circle animation settings
-    const circleSizeRef = useRef(10);
-    const circleSpeedRef = useRef(1);
-    const circleColorRef = useRef('#d3d3d3');
-    const numberOfCirclesRef = useRef(5);
-    const beatSpeedUpRef = useRef(1);
-    const zigzagSmoothnessRef = useRef(1);
 
 
 
+    interface ISettingsVisibility {
+        text: boolean;
+        font: boolean;
+        circle: boolean;
+        background: boolean;
+    }
 
-    const [showTextSettings, setShowTextSettings] = useState(false);
-    const [showFontSettings, setShowFontSettings] = useState(false);
-    const [showCuircleSettings, setShowCuircleSettings] = useState(false);
-    const [showBackgroundSettings, setBackgroundSettings] = useState(false);
-
-    const toggleTextSettings = () => setShowTextSettings(prev => !prev);
-    const toggleFontSettings = () => setShowFontSettings(prev => !prev);
-    const toggleBackgroundSettings = () => setBackgroundSettings(prev => !prev);
-    const toggleCircleSettings = () => setShowCuircleSettings(prev => !prev);
-
+    const [settingsVisibility, setSettingsVisibility] = useState<ISettingsVisibility>({
+        text: false,
+        font: false,
+        circle: false,
+        background: false
+    });
+    const toggleSettings = (setting: keyof ISettingsVisibility) => {
+        setSettingsVisibility(prevSettings => ({
+            ...prevSettings,
+            [setting]: !prevSettings[setting]
+        }));
+    };
 
     const handleFontFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         const files = event.target.files;
@@ -69,13 +82,13 @@ const App: React.FC = () => {
             const font = new FontFace('CustomFont', `url(${URL.createObjectURL(files[0])})`);
             font.load().then((loadedFont) => {
                 document.fonts.add(loadedFont);
-                selectedFontRef.current = 'CustomFont'; // Update ref with the custom font name
+                textSettingsRef.current.selectedFont = 'CustomFont'; // Update ref with the custom font name
             }).catch(error => console.error('Error loading font:', error));
         }
     };
 
     const handleFontChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-        selectedFontRef.current = event.target.value;
+        textSettingsRef.current.selectedFont = event.target.value;
     };
 
 
@@ -113,7 +126,7 @@ const App: React.FC = () => {
     let circles = []
 
     if (canvasRef.current){
-        circles = initializeCircles(canvasRef.current, numberOfCirclesRef.current, circleSizeRef.current, circleSpeedRef.current, circleColorRef.current);
+        circles = initializeCircles(canvasRef.current, circleAnimationSettingsRef.current);
     }
 
 
@@ -141,18 +154,12 @@ const App: React.FC = () => {
                 ctx,
                 analyserRef.current,
                 dataArrayRef.current,
-                textInputRef.current,
-                maxSizeMultiplierRef.current,
-                borderColorRef.current,
-                borderThicknessRef.current,
-                fontSizeRef.current,
-                fontColorRef.current,
-                selectedFontRef.current
+                textSettingsRef.current
             );
 
 
 
-            animateCircles(ctx, circles, analyserRef.current, dataArrayRef.current, beatSpeedUpRef.current, zigzagSmoothnessRef.current, circleSpeedRef.current, circleSizeRef.current, circleColorRef.current);
+            animateCircles(ctx, circles, analyserRef.current, dataArrayRef.current, circleAnimationSettingsRef.current);
 
             animationFrameRef.current = requestAnimationFrame(animate);
         };
@@ -189,45 +196,45 @@ const App: React.FC = () => {
                 <button onClick={handlePlay}>Play</button>
             </div>
 
-            <div className="group-header" onClick={toggleTextSettings}>
+            <div className="group-header" onClick={() =>toggleSettings("text")}>
                 Text Settings
             </div>
-            {showTextSettings && (
+            {settingsVisibility.text && (
                 <div className="settings-group">
                     <label>
                         Text:
                         <input type="text" defaultValue="Sample Text"
-                               onChange={e => textInputRef.current = e.target.value}/>
+                               onChange={e => textSettingsRef.current.textInput = e.target.value}/>
                     </label>
                     <label>
                         Max Size Multiplier:
                         <input type="number" defaultValue="55"
-                               onChange={e => maxSizeMultiplierRef.current = parseFloat(e.target.value)}/>
+                               onChange={e => textSettingsRef.current.maxSizeMultiplier = parseFloat(e.target.value)}/>
                     </label>
                     <label>
                         Border Color:
                         <input type="color" defaultValue="#000000"
-                               onChange={e => borderColorRef.current = e.target.value}/>
+                               onChange={e => textSettingsRef.current.borderColor = e.target.value}/>
                     </label>
                     <label>
                         Border Thickness:
                         <input type="number" defaultValue="1"
-                               onChange={e => borderThicknessRef.current = parseInt(e.target.value)}/>
+                               onChange={e => textSettingsRef.current.borderThickness = parseInt(e.target.value)}/>
                     </label>
                     <label>
                         Font Size:
                         <input type="number" defaultValue="20"
-                               onChange={e => fontSizeRef.current = parseInt(e.target.value)}/>
+                               onChange={e => textSettingsRef.current.fontSize = parseInt(e.target.value)}/>
                     </label>
                     <label>
                         Font Color:
                         <input type="color" defaultValue="#000000"
-                               onChange={e => fontColorRef.current = e.target.value}/>
+                               onChange={e => textSettingsRef.current.fontColor = e.target.value}/>
                     </label>
-                    <div className="group-header" onClick={toggleFontSettings}>
+                    <div className="group-header" onClick={() => toggleSettings("font")}>
                         Font Settings
                     </div>
-                    {showFontSettings && (
+                    {settingsVisibility.font && (
                         <div className="settings-group">
                             <label>
                                 Font:
@@ -246,40 +253,44 @@ const App: React.FC = () => {
                 </div>
             )}
 
-            <div className="group-header" onClick={toggleCircleSettings}>
+            <div className="group-header" onClick={() =>toggleSettings("circle")}>
                 Circle Settings
             </div>
-            {showCuircleSettings && (
+            {settingsVisibility.circle && (
                 <div className="settings-group">
                     <label>
                         Number of Circles:
                         <input type="number" defaultValue="11"
                                onChange={(e) => {
-                                   numberOfCirclesRef.current = parseInt(e.target.value);
-                                   console.log(numberOfCirclesRef.current)
+                                   circleAnimationSettingsRef.current.numberOfCircles = parseInt(e.target.value);
                                }}/>
                     </label>
                     <label>
                         Circle Size:
                         <input type="number" defaultValue="12"
-                               onChange={e => circleSizeRef.current = parseFloat(e.target.value)}/>
+                               onChange={e =>  circleAnimationSettingsRef.current.circleSize = parseFloat(e.target.value)}/>
+                    </label>
+                    <label>
+                        beat speed up factor:
+                        <input type="number" defaultValue="12"
+                               onChange={e =>  circleAnimationSettingsRef.current.beatSpeedUp = parseFloat(e.target.value)}/>
                     </label>
                     <label>
                         Circle Speed:
-                        <input type="number" defaultValue="11" onChange={e => circleSpeedRef.current = e.target.value}/>
+                        <input type="number" defaultValue="11" onChange={e => circleAnimationSettingsRef.current.circleSpeed = parseFloat(e.target.value)}/>
                     </label>
                     <label>
                         Circle Color:
-                        <input type="color" defaultValue="Red" onChange={e => circleColorRef.current = e.target.value}/>
+                        <input type="color" defaultValue="Red" onChange={e => circleAnimationSettingsRef.current.circleColor = e.target.value}/>
                     </label>
                 </div>
             )}
 
 
-            <div className="group-header" onClick={toggleBackgroundSettings}>
+            <div className="group-header" onClick={() =>toggleSettings("background")}>
                 Background settings
             </div>
-            {showBackgroundSettings && (
+            {settingsVisibility.background && (
                 <div className="settings-group">
                     <label>
                         Type:

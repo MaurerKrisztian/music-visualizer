@@ -1,4 +1,6 @@
 // circleAnimation.js
+import {ICircleSettings} from "./saveLoad.ts";
+
 export const createCircle = (canvas, circleSize, circleSpeed, circleColor, random = false) => {
     // Create circle logic
     let circle = {
@@ -13,32 +15,32 @@ export const createCircle = (canvas, circleSize, circleSpeed, circleColor, rando
     return circle;
 };
 
-export const initializeCircles = (canvas, numberOfCircles, circleSize, circleSpeed, circleColor) => {
-    console.log("init ck, ", canvas)
+export const initializeCircles = (canvas, circleAnimationRef: ICircleSettings) => {
     let circles = [];
-    for (let i = 0; i < numberOfCircles; i++) {
-        circles.push(createCircle(canvas, circleSize, circleSpeed, circleColor, true));
+    for (let i = 0; i < circleAnimationRef.numberOfCircles; i++) {
+        circles.push(createCircle(canvas, circleAnimationRef.circleSize, circleAnimationRef.circleSpeed, circleAnimationRef.circleColor, true));
     }
     return circles;
 };
 
-export const animateCircles = (ctx, circles, analyzer, dataArray, beatSpeedUp, zigzagSmoothness, speed, circleSize, circleColor) => {
+export const animateCircles = (ctx, circles, analyzer, dataArray, circleAnimationSettings: ICircleSettings) => {
     let average = dataArray.reduce((a, b) => a + b) / dataArray.length;
 
-    if (zigzagSmoothness > 5) {
-        speed += (average / 512) * beatSpeedUp;
+    let speed = 4;
+    if (circleAnimationSettings.zigzagSmoothness > 5) {
+        speed += (average / 512) * circleAnimationSettings.beatSpeedUp;
     } else {
-        speed += (average / 255) * beatSpeedUp;
+        speed += (average / 255) * circleAnimationSettings.beatSpeedUp;
     }
 
     circles.forEach(circle => {
-        circle.y -= speed; // Move circle up
-        circle.x += circle.xDelta * zigzagSmoothness; // Adjusted zigzag movement
+        circle.y -= speed // Move circle up
+        circle.x += circle.xDelta * circleAnimationSettings.zigzagSmoothness; // Adjusted zigzag movement
 
         // Draw circle
         ctx.beginPath();
-        ctx.arc(circle.x, circle.y, circleSize, 0, Math.PI * 2);
-        ctx.fillStyle = circleColor
+        ctx.arc(circle.x, circle.y, circleAnimationSettings.circleSize, 0, Math.PI * 2);
+        ctx.fillStyle = circleAnimationSettings.circleColor
         ctx.fill();
 
         // Change direction randomly
