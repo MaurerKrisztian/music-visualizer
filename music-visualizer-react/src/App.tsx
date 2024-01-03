@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import animateText from "./elements/animateText.ts";
 import {animateCircles, initializeCircles} from "./elements/circleAnimation.ts";
 import {animateBackground} from "./elements/backgroundAnimation.ts";
-import {IBackgroundSettings, ICircleSettings, ITextSettings} from "./elements/saveLoad.ts";
+import {IBackgroundSettings, ICircleSettings, ITextSettings, loadOptions, save} from "./elements/saveLoad.ts";
 
 const App: React.FC = () => {
     const [file, setFile] = useState<File | null>(null);
@@ -38,8 +38,6 @@ const App: React.FC = () => {
     });
 
 
-
-
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const audioRef = useRef<HTMLAudioElement>(new Audio());
     const audioContextRef = useRef<AudioContext | null>(null);
@@ -55,9 +53,6 @@ const App: React.FC = () => {
     const handleChange = (e) => {
         setBackgroundType(e.target.value); // Update the state when the select value changes
     };
-
-
-
 
     interface ISettingsVisibility {
         text: boolean;
@@ -103,6 +98,18 @@ const App: React.FC = () => {
             setFile(files[0]);
         }
     };
+
+
+    const handleSave = ()=>{
+        save({text: textSettingsRef.current, background: backgroundSettingsRef.current, circle: circleAnimationSettingsRef.current})
+    }
+
+    const handleLoad = () => {
+        const options = loadOptions();
+        circleAnimationSettingsRef.current = options.circle;
+        backgroundSettingsRef.current = options.background;
+        textSettingsRef.current = options.text;
+    }
 
     const handlePlay = () => {
         if (!audioContextRef.current) {
@@ -195,13 +202,20 @@ const App: React.FC = () => {
 
     return (
         <div className="container">
+
+            <div style={{textAlign: 'right', margin: '10px'}}>
+
+                <button onClick={handleSave} style={{margin: '5px'}}>Save</button>
+                <button onClick={handleLoad} style={{margin: '5px'}}>Load</button>
+            </div>
+
             <div className="control-group">
                 <input type="file" onChange={handleFileChange} accept="audio/*"/>
                 {/*{file && !isPlaying && <button onClick={handlePlay}>Play</button>}*/}
                 <button onClick={handlePlay}>Play</button>
             </div>
 
-            <div className="group-header" onClick={() =>toggleSettings("text")}>
+            <div className="group-header" onClick={() => toggleSettings("text")}>
                 Text Settings
             </div>
             {settingsVisibility.text && (
@@ -258,7 +272,7 @@ const App: React.FC = () => {
                 </div>
             )}
 
-            <div className="group-header" onClick={() =>toggleSettings("circle")}>
+            <div className="group-header" onClick={() => toggleSettings("circle")}>
                 Circle Settings
             </div>
             {settingsVisibility.circle && (
@@ -273,26 +287,28 @@ const App: React.FC = () => {
                     <label>
                         Circle Size:
                         <input type="number" defaultValue="12"
-                               onChange={e =>  circleAnimationSettingsRef.current.circleSize = parseFloat(e.target.value)}/>
+                               onChange={e => circleAnimationSettingsRef.current.circleSize = parseFloat(e.target.value)}/>
                     </label>
                     <label>
                         beat speed up factor:
                         <input type="number" defaultValue="12"
-                               onChange={e =>  circleAnimationSettingsRef.current.beatSpeedUp = parseFloat(e.target.value)}/>
+                               onChange={e => circleAnimationSettingsRef.current.beatSpeedUp = parseFloat(e.target.value)}/>
                     </label>
                     <label>
                         Circle Speed:
-                        <input type="number" defaultValue="11" onChange={e => circleAnimationSettingsRef.current.circleSpeed = parseFloat(e.target.value)}/>
+                        <input type="number" defaultValue="11"
+                               onChange={e => circleAnimationSettingsRef.current.circleSpeed = parseFloat(e.target.value)}/>
                     </label>
                     <label>
                         Circle Color:
-                        <input type="color" defaultValue="Red" onChange={e => circleAnimationSettingsRef.current.circleColor = e.target.value}/>
+                        <input type="color" defaultValue="Red"
+                               onChange={e => circleAnimationSettingsRef.current.circleColor = e.target.value}/>
                     </label>
                 </div>
             )}
 
 
-            <div className="group-header" onClick={() =>toggleSettings("background")}>
+            <div className="group-header" onClick={() => toggleSettings("background")}>
                 Background settings
             </div>
             {settingsVisibility.background && (

@@ -1,4 +1,3 @@
-// circleAnimation.js
 import {ICircleSettings} from "./saveLoad.ts";
 
 export const createCircle = (canvas, circleSize, circleSpeed, circleColor, random = false) => {
