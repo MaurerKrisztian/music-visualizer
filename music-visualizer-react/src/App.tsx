@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import animateText from "./elements/animateText.ts";
 import {animateCircles, initializeCircles} from "./elements/circleAnimation.ts";
 import {animateBackground} from "./elements/backgroundAnimation.ts";
-import {ICircleSettings, ITextSettings} from "./elements/saveLoad.ts";
+import {IBackgroundSettings, ICircleSettings, ITextSettings} from "./elements/saveLoad.ts";
 
 const App: React.FC = () => {
     const [file, setFile] = useState<File | null>(null);
@@ -31,6 +31,14 @@ const App: React.FC = () => {
     });
 
 
+    const backgroundSettingsRef = useRef<IBackgroundSettings>({
+        backgroundColor: '#f59292',
+        backgroundImage: '',
+        shakeIntensity: 0
+    });
+
+
+
 
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const audioRef = useRef<HTMLAudioElement>(new Audio());
@@ -47,11 +55,6 @@ const App: React.FC = () => {
     const handleChange = (e) => {
         setBackgroundType(e.target.value); // Update the state when the select value changes
     };
-
-
-    const backgroundColorRef = useRef('#f59292');
-    const backgroundImageRef = useRef('');
-    const shakeIntensityRef = useRef(0);
 
 
 
@@ -141,11 +144,11 @@ const App: React.FC = () => {
         if (!ctx) return;
 
         const animate = () => {
-            if (backgroundType === 'image') {
-                animateBackground(ctx, canvasRef.current, analyserRef.current, dataArrayRef.current, backgroundImageRef.current, shakeIntensityRef.current);
+            if (backgroundSettingsRef.current.backgroundImage !== null && backgroundSettingsRef.current.backgroundImage !== "") {
+                animateBackground(ctx, canvasRef.current, analyserRef.current, dataArrayRef.current, backgroundSettingsRef.current);
             } else {
                 ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-                ctx.fillStyle = backgroundColorRef.current;
+                ctx.fillStyle = backgroundSettingsRef.current.backgroundColor;
                 ctx.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height);
             }
 
@@ -173,7 +176,9 @@ const App: React.FC = () => {
     const handleBackgroundImageChange = (event) => {
         const file = event.target.files[0];
         const imageUrl = URL.createObjectURL(file);
-        backgroundImageRef.current = imageUrl;
+
+        backgroundSettingsRef.current.backgroundImage = imageUrl;
+        console.log(backgroundSettingsRef.current.backgroundImage)
     };
 
     useEffect(() => {
@@ -303,8 +308,8 @@ const App: React.FC = () => {
                     {backgroundType === 'color' && (
                         <label>
                             Color:
-                            <input type="color" value={backgroundColorRef.current}
-                                   onChange={e => backgroundColorRef.current = e.target.value}/>
+                            <input type="color" value={backgroundSettingsRef.current.backgroundColor}
+                                   onChange={e => backgroundSettingsRef.current.backgroundColor = e.target.value}/>
                         </label>
                     )}
 

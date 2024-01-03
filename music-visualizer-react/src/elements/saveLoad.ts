@@ -39,6 +39,12 @@ export interface ITextSettings {
     textInput: string,
     selectedFont: string,
 }
+
+export interface IBackgroundSettings {
+    backgroundColor: string,
+    backgroundImage: string,
+    shakeIntensity: number
+}
 export function save(options: ISaveOptions){
     const jsonOptions = JSON.stringify(options);
     localStorage.setItem("save", jsonOptions);

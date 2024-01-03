@@ -1,5 +1,4 @@
-// backgroundAnimation.js
-// drawBackground.js
+import {IBackgroundSettings} from "./saveLoad.ts";
 
 export const drawBackground = (ctx, canvas, imageUrl, shakeIntensity, analyzer, dataArray) => {
     if (imageUrl) {
@@ -42,7 +41,8 @@ export const drawBackground = (ctx, canvas, imageUrl, shakeIntensity, analyzer, 
 };
 
 
-export const animateBackground = (ctx, canvas, analyzer, dataArray, imageUrl, shakeIntensity) => {
+export const animateBackground = (ctx, canvas, analyzer, dataArray, backgroundSettings: IBackgroundSettings) => {
+    const {shakeIntensity, backgroundImage, backgroundColor } = backgroundSettings;
     // ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // Get audio data
@@ -52,7 +52,7 @@ export const animateBackground = (ctx, canvas, analyzer, dataArray, imageUrl, sh
     // Adjust shake intensity based on the beat
     let currentShakeIntensity = shakeIntensity * (average / 255);
 
-    drawBackground(ctx, canvas, imageUrl, currentShakeIntensity, analyzer, dataArray);
+    drawBackground(ctx, canvas, backgroundImage, currentShakeIntensity, analyzer, dataArray);
 
     // requestAnimationFrame(() => animateBackground(ctx, canvas, analyzer, dataArray, imageUrl, shakeIntensity));
 };
