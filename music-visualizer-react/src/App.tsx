@@ -5,7 +5,8 @@ import {animateBackground, setBackgroundImage} from "./elements/backgroundAnimat
 import {IBackgroundSettings, ICircleSettings, ITextSettings, loadOptions, save} from "./elements/saveLoad.ts";
 import AudioControls from "./components/AudioControls.tsx";
 import defaultAudio from './assets/music.mp3';
-import Recorder from "./components/Recorder.tsx"; // Adjust the path as necessary
+import Recorder from "./components/Recorder.tsx";
+import {drawMusicVisualization, MusicVisualizationSettings} from "./elements/circleBarVisuaalization.ts"; // Adjust the path as necessary
 
 const App: React.FC = () => {
     const [file, setFile] = useState<File | null>(null);
@@ -41,6 +42,30 @@ const App: React.FC = () => {
     });
 
 
+    const musicVisSettingsRef = useRef({
+        circle: {
+            baseRadius: 22,
+            growthFactor: 222,
+            color: '#006400'
+        },
+        bars: {
+            widthMultiplier: 155,
+            lengthMultiplier: 2,
+            color: (i) => `rgb(${i * 2}, ${200 - i * 2}, ${50 + i * 2})`
+        }
+    });
+
+
+    const handleSettingChange = (e) => {
+        const { name, value } = e.target;
+        // Update the settings ref based on the name of the input
+        // Assuming a naming convention like "circle.baseRadius"
+        const [category, key] = name.split('.');
+        musicVisSettingsRef.current[category][key] = isNaN(value) ? value : Number(value);
+        // Trigger a re-render or update if necessary
+    };
+
+
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const audioRef = useRef<HTMLAudioElement>(new Audio());
     const audioContextRef = useRef<AudioContext | null>(null);
@@ -64,6 +89,7 @@ const App: React.FC = () => {
         circle: boolean;
         background: boolean;
         render: boolean;
+        musicVisualization: boolean;
     }
 
     const [settingsVisibility, setSettingsVisibility] = useState<ISettingsVisibility>({
@@ -72,6 +98,7 @@ const App: React.FC = () => {
         circle: false,
         background: false,
         render: false,
+        musicVisualization: false,
     });
     const toggleSettings = (setting: keyof ISettingsVisibility) => {
         setSettingsVisibility(prevSettings => ({
@@ -205,6 +232,14 @@ const App: React.FC = () => {
 
             animateCircles(ctx, circles, analyserRef.current, dataArrayRef.current, circleAnimationSettingsRef.current);
 
+
+            // const canvas = canvasRef.current;
+            // const ctx = canvas.getContext('2d');
+            const bufferLength = analyserRef.current.frequencyBinCount;
+            const dataArray = dataArrayRef.current //new Uint8Array(bufferLength);
+
+            drawMusicVisualization(ctx, bufferLength, dataArray,  musicVisSettingsRef.current);
+
             animationFrameRef.current = requestAnimationFrame(animate);
         };
 
@@ -258,24 +293,72 @@ const App: React.FC = () => {
     };
 
     return (
-        <div className="container" >
+        <div className="container">
             <div style={{textAlign: 'right', margin: '10px'}}>
 
-                <button onClick={handleSave} >Save</button>
+                <button onClick={handleSave}>Save</button>
                 <button onClick={handleLoad} style={{margin: '5px'}}>Load</button>
             </div>
 
 
-            {/*<div className="app-container">*/}
-            {/*    <label>*/}
-            {/*        Canvas Resolution:*/}
-            {/*        <select value={resolution} onChange={handleResolutionChange}>*/}
-            {/*            {Object.keys(resolutions).map(res => (*/}
-            {/*                <option key={res} value={res}>{res}</option>*/}
-            {/*            ))}*/}
-            {/*        </select>*/}
-            {/*    </label>*/}
-            {/*</div>*/}
+
+            <div className="group-header" onClick={() => toggleSettings("musicVisualization")}>
+                Music Visualization Settings
+            </div>
+            {settingsVisibility.musicVisualization && (
+                <div className="settings-group">
+                    {/* Circle Settings */}
+                    <label>
+                        Circle Base Radius:
+                        <input
+                            type="number"
+                            name="circle.baseRadius"
+                            defaultValue={musicVisSettingsRef.current.circle.baseRadius}
+                            onChange={handleSettingChange}
+                        />
+                    </label>
+                    <label>
+                        Circle Growth Factor:
+                        <input
+                            type="number"
+                            name="circle.growthFactor"
+                            defaultValue={musicVisSettingsRef.current.circle.growthFactor}
+                            onChange={handleSettingChange}
+                        />
+                    </label>
+                    <label>
+                        Circle Color:
+                        <input
+                            type="color"
+                            name="circle.color"
+                            defaultValue={musicVisSettingsRef.current.circle.color}
+                            onChange={handleSettingChange}
+                        />
+                    </label>
+
+
+                    {/* Bar Settings */}
+                    <label>
+                        Bars Width Multiplier:
+                        <input
+                            type="number"
+                            name="bars.widthMultiplier"
+                            defaultValue={musicVisSettingsRef.current.bars.widthMultiplier}
+                            onChange={handleSettingChange}
+                        />
+                    </label>
+                    <label>
+                        Bars Length Multiplier:
+                        <input
+                            type="number"
+                            name="bars.lengthMultiplier"
+                            defaultValue={musicVisSettingsRef.current.bars.lengthMultiplier}
+                            onChange={handleSettingChange}
+                        />
+                    </label>
+                </div>
+            )}
+
 
             <div className="control-group">
                 <input type="file" onChange={handleFileChange} accept="audio/*"/>
