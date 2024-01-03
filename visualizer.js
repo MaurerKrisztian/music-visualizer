@@ -1,10 +1,20 @@
 window.onload = function() {
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let audioContext, analyser, source, audio;
+    let backgroundImage = null;
+    let circleImage = null;
+
+    const resolutions = {
+        'HD': { width: 1280, height: 720 },
+        'FullHD': { width: 1920, height: 1080 }
+    };
+
     const settings = {
         circle: {
             baseRadius: 22,
             growthFactor: 222,
-            color: '#006400',
-            image: null
+            color: '#006400'
         },
         bars: {
             widthMultiplier: 55,
@@ -12,136 +22,216 @@ window.onload = function() {
             color: function(i) {
                 return `rgb(${i * 2}, ${200 - i * 2}, ${50 + i * 2})`;
             }
+        },
+        video: {
+            bitrate: 2500000,
+            resolution: 'HD',
+            fps: 30
         }
     };
 
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    document.getElementById('audioFile').onchange = handleAudioFile;
+    document.getElementById('imageFile').onchange = handleImageFile;
+    document.getElementById('backgroundImageFile').onchange = handleBackgroundImageFile;
+    setupControlEventHandlers();
 
-    const fileInput = document.getElementById('audioFile');
-    const imageInput = document.getElementById('imageFile');
-    const baseRadiusInput = document.getElementById('baseRadius');
-    const growthFactorInput = document.getElementById('growthFactor');
-    const circleColorInput = document.getElementById('circleColor');
-    const barWidthMultiplierInput = document.getElementById('barWidthMultiplier');
-    const barLengthMultiplierInput = document.getElementById('barLengthMultiplier');
+    document.getElementById('playButton').addEventListener('click', playAudioAndRender);
+    document.getElementById('downloadButton').addEventListener('click', downloadVisualization);
 
-    // Update settings from UI
-    baseRadiusInput.oninput = () => settings.circle.baseRadius = parseInt(baseRadiusInput.value);
-    growthFactorInput.oninput = () => settings.circle.growthFactor = parseInt(growthFactorInput.value);
-    circleColorInput.oninput = () => settings.circle.color = circleColorInput.value;
-    barWidthMultiplierInput.oninput = () => settings.bars.widthMultiplier = parseInt(barWidthMultiplierInput.value);
-    barLengthMultiplierInput.oninput = () => settings.bars.lengthMultiplier = parseInt(barLengthMultiplierInput.value);
+    function setupControlEventHandlers() {
+        document.getElementById('baseRadius').addEventListener('input', function() {
+            settings.circle.baseRadius = parseInt(this.value);
+        });
+        document.getElementById('growthFactor').addEventListener('input', function() {
+            settings.circle.growthFactor = parseInt(this.value);
+        });
+        document.getElementById('circleColor').addEventListener('input', function() {
+            settings.circle.color = this.value;
+        });
+        document.getElementById('barWidthMultiplier').addEventListener('input', function() {
+            settings.bars.widthMultiplier = parseInt(this.value);
+        });
+        document.getElementById('barLengthMultiplier').addEventListener('input', function() {
+            settings.bars.lengthMultiplier = parseInt(this.value);
+        });
+        document.getElementById('bitrate').addEventListener('input', function() {
+            settings.video.bitrate = parseInt(this.value);
+        });
+        document.getElementById('resolutionSelect').addEventListener('change', function() {
+            settings.video.resolution = this.value;
+        });
+        document.getElementById('fps').addEventListener('input', function() {
+            settings.video.fps = parseInt(this.value);
+        });
+    }
 
-    imageInput.onchange = function() {
+    function handleAudioFile() {
+        if (this.files && this.files[0]) {
+            if (audioContext) audioContext.close();
+            audioContext = new AudioContext();
+            audio = new Audio(URL.createObjectURL(this.files[0]));
+            audio.crossOrigin = "anonymous";
+            audio.load();
+            source = audioContext.createMediaElementSource(audio);
+            analyser = audioContext.createAnalyser();
+            source.connect(analyser);
+            analyser.connect(audioContext.destination);
+            analyser.fftSize = 256;
+        }
+    }
+
+    function handleImageFile() {
         if (this.files && this.files[0]) {
             const reader = new FileReader();
             reader.onload = function(e) {
-                const img = new Image();
-                img.onload = function() {
-                    settings.circle.image = img;
-                };
-                img.src = e.target.result;
+                circleImage = new Image();
+                circleImage.src = e.target.result;
             };
             reader.readAsDataURL(this.files[0]);
         }
-    };
-
-    const playButton = document.getElementById('playButton');
-    const pauseButton = document.getElementById('pauseButton');
-    const seekBar = document.getElementById('seekBar');
-
-    let audio;
-    let animationId;
-
-    // Initialize audio controls
-    function setupAudioControls() {
-        playButton.onclick = () => audio.play();
-        pauseButton.onclick = () => audio.pause();
-
-        seekBar.oninput = function() {
-            const seekTime = audio.duration * (seekBar.value / 100);
-            audio.currentTime = seekTime;
-        };
-
-        audio.ontimeupdate = function() {
-            const progress = (audio.currentTime / audio.duration) * 100;
-            seekBar.value = progress;
-        };
     }
 
-    fileInput.onchange = function() {
-        const files = this.files;
-        if (files.length === 0) return;
-
-        if (audio) {
-            audio.pause();
-            cancelAnimationFrame(animationId);
+    function handleBackgroundImageFile() {
+        if (this.files && this.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                backgroundImage = new Image();
+                backgroundImage.src = e.target.result;
+            };
+            reader.readAsDataURL(this.files[0]);
         }
+    }
 
-        // Audio setup
-        const audioContext = new AudioContext();
-        audio = new Audio(URL.createObjectURL(files[0]));
-        setupAudioControls();
-        audio.crossOrigin = "anonymous";
-        audio.load();
+    function playAudioAndRender() {
+        if (!audio) {
+            console.log("No audio file selected");
+            return;
+        }
+        audio.play();
+        startRendering();
+    }
 
-        const source = audioContext.createMediaElementSource(audio);
-        const analyser = audioContext.createAnalyser();
-        source.connect(analyser);
-        analyser.connect(audioContext.destination);
-        analyser.fftSize = 256;
+    function startRendering() {
+        adjustCanvasSize(settings.video.resolution);
+        renderVisuals(canvas, ctx, analyser, settings, backgroundImage, circleImage);
+    }
 
+    function adjustCanvasSize(resolutionKey) {
+        const resolution = resolutions[resolutionKey];
+        canvas.width = resolution.width;
+        canvas.height = resolution.height;
+    }
+
+    function renderVisuals(canvas, ctx, analyser, settings, backgroundImage, circleImage) {
         const bufferLength = analyser.frequencyBinCount;
         const dataArray = new Uint8Array(bufferLength);
 
         function draw() {
             requestAnimationFrame(draw);
-            analyser.getByteFrequencyData(dataArray);
 
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            if (backgroundImage) {
+                ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
+            } else {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+            analyser.getByteFrequencyData(dataArray);
 
             const centerX = canvas.width / 2;
             const centerY = canvas.height / 2;
-            let radius = settings.circle.baseRadius;
+            let avg = dataArray.reduce((a, b) => a + b) / bufferLength; // Average frequency
+            let radius = settings.circle.baseRadius + avg / settings.circle.growthFactor;
 
-            for (let i = 0; i < bufferLength; i++) {
-                const barHeight = dataArray[i]
-            // Draw the circle
-            if (settings.circle.image) {
-                // Draw image if available
+            // Draw the circle with image or color
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            ctx.closePath();
+
+            if (circleImage) {
                 ctx.save();
-                ctx.beginPath();
-                ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-                ctx.closePath();
                 ctx.clip();
-                ctx.drawImage(settings.circle.image, centerX - radius, centerY - radius, radius * 2, radius * 2);
+                ctx.drawImage(circleImage, centerX - radius, centerY - radius, radius * 2, radius * 2);
                 ctx.restore();
             } else {
-                // Draw solid color circle
                 ctx.fillStyle = settings.circle.color;
-                ctx.beginPath();
-                ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
                 ctx.fill();
             }
 
             // Drawing equalizer bars
-            const barWidth = (Math.PI * 2) / bufferLength;
-            const barLength = barHeight * settings.bars.lengthMultiplier;
-            ctx.fillStyle = settings.bars.color(i);
-            ctx.save();
-            ctx.translate(centerX, centerY);
-            ctx.rotate(i * barWidth);
-            ctx.fillRect(0, radius, barWidth * settings.bars.widthMultiplier, barLength);
-            ctx.restore();
-
-            radius += barHeight / settings.circle.growthFactor;
+            for (let i = 0; i < bufferLength; i++) {
+                const barHeight = dataArray[i];
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.rotate(i * ((Math.PI * 2) / bufferLength));
+                ctx.fillStyle = settings.bars.color(i);
+                ctx.fillRect(0, radius, settings.bars.widthMultiplier, barHeight * settings.bars.lengthMultiplier);
+                ctx.restore();
+            }
         }
+
+        draw();
     }
 
-    draw();
-}
-}
+
+    function downloadVisualization() {
+        if (!audio || !analyser) {
+            console.log("No audio or analyser available");
+            return;
+        }
+        setupAndDownloadVisualizations(settings.video.resolution, settings.video.bitrate, settings.video.fps);
+    }
+
+    function setupAndDownloadVisualizations(selectedResolution, bitrate, fps) {
+        let offscreenCanvas = document.createElement('canvas');
+        const resolution = resolutions[selectedResolution];
+        offscreenCanvas.width = resolution.width;
+        offscreenCanvas.height = resolution.height;
+
+        let offscreenCtx = offscreenCanvas.getContext('2d');
+        renderVisuals(offscreenCanvas, offscreenCtx, analyser, settings, backgroundImage, circleImage);
+
+        recordVisualizations(offscreenCanvas, audio, audio.duration, bitrate, fps);
+    }
+
+    function recordVisualizations(canvas, audio, duration, bitrate, fps) {
+        const stream = canvas.captureStream(fps);
+        const audioTracks = audio.captureStream().getAudioTracks();
+
+        if (audioTracks.length > 0) {
+            stream.addTrack(audioTracks[0]);
+        }
+
+        const options = {
+            mimeType: 'video/webm; codecs=vp9',
+            videoBitsPerSecond: bitrate
+        };
+
+        const mediaRecorder = new MediaRecorder(stream);
+        let chunks = [];
+
+        mediaRecorder.ondataavailable = function(e) {
+            chunks.push(e.data);
+        };
+
+        mediaRecorder.onstop = function() {
+            const blob = new Blob(chunks, { 'type': 'video/webm' });
+            chunks = [];
+
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            document.body.appendChild(a);
+            a.style = 'display: none';
+            a.href = url;
+            a.download = 'visualization.webm';
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+        };
+
+        mediaRecorder.start();
+
+        setTimeout(() => mediaRecorder.stop(), duration * 1000);
+    }
+};
+

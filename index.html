@@ -6,93 +6,83 @@
     <style>
         #canvas {
             border: 1px solid black;
+            width: 100%;
+            height: auto;
         }
-
-        .media-player {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            background-color: #f0f0f0;
-            padding: 10px;
-            border-radius: 5px;
+        .container {
+            margin: 20px;
         }
-
-        .player-button {
-            background-color: #007bff;
-            border: none;
-            border-radius: 5px;
-            padding: 10px 20px;
-            color: white;
-            cursor: pointer;
-            transition: background-color 0.3s;
+        .control-group {
+            margin-bottom: 10px;
         }
-
-        .player-button:hover {
-            background-color: #0056b3;
-        }
-
-        /* General styling for the slider */
-        .seek-bar {
-            -webkit-appearance: none;  /* Removes default webkit styles */
-            appearance: none;
-            width: 100%; /* Full width of the container */
-            height: 10px; /* Specified height for the track */
-            background: #ddd; /* Grey background */
-            outline: none; /* Remove default focus outline */
-        }
-
-        /* Styling for the slider thumb (draggable part) */
-        .seek-bar::-webkit-slider-thumb {
-            -webkit-appearance: none; /* Removes default webkit styles for the thumb */
-            width: 20px; /* Width of the thumb */
-            height: 20px; /* Height of the thumb */
-            background: #4CAF50; /* Green background for the thumb */
-            cursor: pointer; /* Cursor changes to pointer when hovering over the thumb */
-            border-radius: 50%; /* Makes the thumb circular */
-        }
-
-        .seek-bar::-moz-range-thumb {
-            width: 20px; /* Width of the thumb */
-            height: 20px; /* Height of the thumb */
-            background: #4CAF50; /* Green background for the thumb */
-            cursor: pointer; /* Cursor changes to pointer when hovering over the thumb */
-            border-radius: 50%; /* Makes the thumb circular */
-        }
-
-
-
     </style>
 </head>
 <body>
-    <input type="file" id="audioFile" accept="audio/*" />
-    <input type="file" id="imageFile" accept="image/*" /><br/>
-
-    <label for="baseRadius">Circle Base Radius:</label>
-    <input type="number" id="baseRadius" value="22" /><br/>
-
-    <label for="growthFactor">Circle Growth Factor:</label>
-    <input type="number" id="growthFactor" value="222" /><br/>
-
-    <label for="circleColor">Circle Color:</label>
-    <input type="color" id="circleColor" value="#FFFFFF" /><br/>
-
-    <label for="barWidthMultiplier">Bar Width Multiplier:</label>
-    <input type="number" id="barWidthMultiplier" value="55" /><br/>
-
-    <label for="barLengthMsultiplier">Bar Length Multiplier:</label>
-    <input type="number" id="barLengthMultiplier" value="1" /><br/>
-
-
-    <div class="media-player">
-        <button id="playButton" class="player-button">Play</button>
-        <button id="pauseButton" class="player-button">Pause</button>
-        <input type="range" id="seekBar" class="seek-bar" min="0" max="100" value="0">
+<div class="container">
+    <div class="control-group">
+        <label for="audioFile">Audio File:</label>
+        <input type="file" id="audioFile" accept="audio/*">
     </div>
 
+    <div class="control-group">
+        <label for="imageFile">Circle Image:</label>
+        <input type="file" id="imageFile" accept="image/*">
+    </div>
+
+    <div class="control-group">
+        <label for="backgroundImageFile">Background Image:</label>
+        <input type="file" id="backgroundImageFile" accept="image/*">
+    </div>
+
+    <div class="control-group">
+        <label for="resolutionSelect">Resolution:</label>
+        <select id="resolutionSelect">
+            <option value="HD">HD (1280x720)</option>
+            <option value="FullHD">Full HD (1920x1080)</option>
+        </select>
+    </div>
+
+    <div class="control-group">
+        <label for="baseRadius">Circle Base Radius:</label>
+        <input type="number" id="baseRadius" value="22">
+    </div>
+
+    <div class="control-group">
+        <label for="growthFactor">Circle Growth Factor:</label>
+        <input type="number" id="growthFactor" value="222">
+    </div>
+
+    <div class="control-group">
+        <label for="circleColor">Circle Color:</label>
+        <input type="color" id="circleColor" value="#006400">
+    </div>
+
+    <div class="control-group">
+        <label for="barWidthMultiplier">Bar Width Multiplier:</label>
+        <input type="number" id="barWidthMultiplier" value="55">
+    </div>
+
+    <div class="control-group">
+        <label for="barLengthMultiplier">Bar Length Multiplier:</label>
+        <input type="number" id="barLengthMultiplier" value="1">
+    </div>
+
+    <div class="control-group">
+        <label for="bitrate">Bitrate (bps):</label>
+        <input type="number" id="bitrate" value="2500000">
+    </div>
+
+    <div class="control-group">
+        <label for="fps">FPS:</label>
+        <input type="number" id="fps" value="30">
+    </div>
+
+    <button id="playButton">Play</button>
+    <button id="downloadButton">Download</button>
+
     <canvas id="canvas"></canvas>
+</div>
 
-
-    <script src="visualizer.js"></script>
+<script src="visualizer.js"></script> <!-- Make sure this points to your JavaScript file -->
 </body>
 </html>
