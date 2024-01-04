@@ -1,4 +1,5 @@
 import React, {useEffect, useState} from 'react';
+import volSvg from "../assets/volume.svg"
 
 const AudioControls = ({audioRef}: { audioRef: React.MutableRefObject<HTMLAudioElement> }) => {
     const [isPlaying, setIsPlaying] = useState(false);
@@ -63,7 +64,7 @@ const AudioControls = ({audioRef}: { audioRef: React.MutableRefObject<HTMLAudioE
             </div>
 
 
-            <img src="./assets/volume.svg" alt="Description of SVG" width={25} height={25}/> <input
+            <img src={volSvg} alt="Description of SVG" width={25} height={25}/> <input
             type="range"
             min="0"
             max="1"
