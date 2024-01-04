@@ -349,7 +349,7 @@ const App: React.FC = () => {
 
 
             <div className="control-group">
-                <input type="file" onChange={handleFileChange} accept="audio/*"/>
+                Audio file: <input type="file" onChange={handleFileChange} accept="audio/*"/>
                 <div className="container">
                     {/* ... other components and content */}
                     <AudioControls audioRef={audioRef}/>
@@ -358,7 +358,7 @@ const App: React.FC = () => {
                     {/* ... other components and content */}
                 </div>
                 {/*{file && !isPlaying && <button onClick={handlePlay}>Play</button>}*/}
-                <button onClick={handlePlay}>Start visualize</button>
+                <button onClick={handlePlay}>Start & visualize</button>
             </div>
 
 

@@ -4,8 +4,8 @@
   font-weight: 400;
 
   color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  color: rgba(255, 255, 255, 0.87); /* Light text color */
+  background-color: #121212; /* Darker background */
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -15,11 +15,11 @@
 
 a {
   font-weight: 500;
-  color: #646cff;
+  color: #7899ff; /* Lighter link color */
   text-decoration: inherit;
 }
 a:hover {
-  color: #535bf2;
+  color: #5677ff; /* Different hover color for better contrast */
 }
 
 body {
@@ -33,6 +33,7 @@ body {
 h1 {
   font-size: 3.2em;
   line-height: 1.1;
+  color: #ffffff; /* Ensure headings are visible */
 }
 
 button {
@@ -42,39 +43,26 @@ button {
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
+  background-color: #333333; /* Dark button background */
+  color: #ffffff; /* Light text on buttons */
   cursor: pointer;
   transition: border-color 0.25s;
 }
 button:hover {
-  border-color: #646cff;
+  border-color: #7899ff; /* Hover border color */
 }
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
-}
-
-
 /* App.css */
 .container {
   margin: 20px;
   padding: 20px;
   border-radius: 8px;
-  background-color: #f5f5f5;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  background-color: #1a1a1a; /* Dark container background */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); /* Adjusted shadow for visibility */
 }
 
 .control-group {
@@ -84,12 +72,15 @@ button:focus-visible {
 .control-group label {
   margin-right: 10px;
   font-weight: bold;
+  color: #ffffff; /* Light label color */
 }
 
 .control-group input,
 .control-group select {
   padding: 8px;
-  border: 1px solid #ddd;
+  border: 1px solid #555; /* Darker border */
+  background-color: #333; /* Dark input/select background */
+  color: #ffffff; /* Light text color */
   border-radius: 4px;
   font-size: 16px;
 }
@@ -99,7 +90,7 @@ button:focus-visible {
 }
 
 button {
-  background-color: #007bff;
+  background-color: #0056b3; /* Adjusted button color */
   color: white;
   padding: 10px 15px;
   border: none;
@@ -109,22 +100,22 @@ button {
 }
 
 button:hover {
-  background-color: #0056b3;
+  background-color: #003d82; /* Darker hover color */
 }
 
 canvas {
-  display: block; /* Removes bottom margin/padding */
+  display: block;
   margin: 20px auto;
-  border: 1px solid #ddd;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 1px solid #555; /* Darker border */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Adjusted shadow for visibility */
 }
-
 
 /* App.css */
 .group-header {
   margin-top: 10px;
   padding: 10px;
-  background-color: #e7e7e7;
+  background-color: #333333; /* Dark header background */
+  color: #ffffff; /* Light text color */
   cursor: pointer;
   border-radius: 4px;
   font-weight: bold;
@@ -132,13 +123,15 @@ canvas {
 
 .settings-group {
   padding: 10px;
-  border: 1px solid #ddd;
+  border: 1px solid #555; /* Darker border */
+  background-color: #242424; /* Dark settings background */
+  color: #ffffff; /* Light text color */
   border-radius: 4px;
   margin-bottom: 20px;
 }
 
 label {
-  padding: 22px;
+  /*padding: 22px;*/
   margin: 22px;
-  /*display: flex;*/
+  color: #ffffff; /* Light text color */
 }
