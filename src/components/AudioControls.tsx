@@ -23,7 +23,7 @@ const AudioControls = ({audioRef}: { audioRef: React.MutableRefObject<HTMLAudioE
     };
 
     const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const newVolume = parseInt(e.target.value);
+        const newVolume = parseFloat(e.target.value);
         audioRef.current.volume = newVolume;
         setVolume(newVolume);
     };
@@ -62,14 +62,15 @@ const AudioControls = ({audioRef}: { audioRef: React.MutableRefObject<HTMLAudioE
                 />
             </div>
 
-            <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={volume}
-                onChange={handleVolumeChange}
-            />
+
+            <img src="./public/volume.svg" alt="Description of SVG" width={25} height={25}/> <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value={volume}
+            onChange={handleVolumeChange}
+        />
         </div>
     );
 };

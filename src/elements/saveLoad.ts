@@ -31,6 +31,9 @@ export interface IBackgroundSettings {
     backgroundImage: string,
     shakeIntensity: number
 }
+export interface IRenderingSettings {
+    bitRateInMb: number
+}
 
 export async function save(saveOptions: ISaveOptions) {
     const options = Object.assign({}, saveOptions);

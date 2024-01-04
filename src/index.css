@@ -136,3 +136,9 @@ canvas {
   border-radius: 4px;
   margin-bottom: 20px;
 }
+
+label {
+  padding: 22px;
+  margin: 22px;
+  /*display: flex;*/
+}

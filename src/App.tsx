@@ -2,10 +2,17 @@ import React, {useState, useEffect, useRef} from 'react';
 import animateText from "./elements/animateText.ts";
 import {animateCircles, ICircle, initializeCircles} from "./elements/circleAnimation.ts";
 import {animateBackground, setBackgroundImage} from "./elements/backgroundAnimation.ts";
-import {IBackgroundSettings, ICircleSettings, ITextSettings, loadOptions, save} from "./elements/saveLoad.ts";
+import {
+    IBackgroundSettings,
+    ICircleSettings,
+    IRenderingSettings,
+    ITextSettings,
+    loadOptions,
+    save
+} from "./elements/saveLoad.ts";
 import AudioControls from "./components/AudioControls.tsx";
 import defaultAudio from './assets/music.mp3';
-import Recorder from "./components/Recorder.tsx";
+import Recorder, {estimateFileSize} from "./components/Recorder.tsx";
 import {
     drawMusicVisualization,
     MusicVisualizationSettings
@@ -61,6 +68,10 @@ const App: React.FC = () => {
         shakeIntensity: 0
     });
 
+
+    const renderingSettingsRef = useRef<IRenderingSettings>({
+        bitRateInMb: 6,
+    });
 
     const musicVisSettingsRef = useRef<MusicVisualizationSettings>({
         circle: {
@@ -154,6 +165,13 @@ const App: React.FC = () => {
             setFile(null);
             setFile(defaultFile);
         }
+
+
+        setTimeout(()=>{
+            console.log(renderingSettingsRef.current.bitRateInMb, audioRef.current.duration)
+            setEstimatedFileSize(estimateFileSize(renderingSettingsRef.current.bitRateInMb, audioRef.current.duration))
+        },222)
+
     };
 
 
@@ -283,6 +301,7 @@ const App: React.FC = () => {
 
 
     const [resolution, setResolution] = useState("FullHD");
+    const [estimatedFileSize, setEstimatedFileSize] = useState("");
     useEffect(() => {
         const canvas = canvasRef.current;
         if (canvas && resolutions[resolution]) {
@@ -335,7 +354,7 @@ const App: React.FC = () => {
                     {/* ... other components and content */}
                     <AudioControls audioRef={audioRef}/>
 
-                    {file && <Recorder key={file.name} audioRef={audioRef} canvasRef={canvasRef}/>}
+                    {/*{file && <Recorder key={file.name} audioRef={audioRef} settings={renderingSettingsRef} canvasRef={canvasRef}/>}*/}
                     {/* ... other components and content */}
                 </div>
                 {/*{file && !isPlaying && <button onClick={handlePlay}>Play</button>}*/}
@@ -344,7 +363,7 @@ const App: React.FC = () => {
 
 
             <div className="group-header" onClick={() => toggleSettings("render")}>
-                Render Settings
+                Render / Export
             </div>
             {settingsVisibility.render && (
                 <div className="settings-group">
@@ -355,6 +374,21 @@ const App: React.FC = () => {
                                 <option key={res} value={res}>{res}</option>
                             ))}
                         </select>
+                    </label>
+                    <label>
+                        Bitrate:
+                        <input type="number" defaultValue="6"
+                               onChange={(e) => {
+                                   renderingSettingsRef.current.bitRateInMb = parseFloat(e.target.value);
+                                   console.log(estimateFileSize(renderingSettingsRef.current.bitRateInMb, audioRef.current.duration))
+                                   setEstimatedFileSize(estimateFileSize(renderingSettingsRef.current.bitRateInMb, audioRef.current.duration))
+                               }}/>MB
+                    </label>
+                    <hr/>
+                    Estimated video file size is: {estimatedFileSize}
+                    <label>
+                        {file && <Recorder key={file.name} audioRef={audioRef} settings={renderingSettingsRef}
+                                           canvasRef={canvasRef}/>}
                     </label>
                 </div>
             )}
