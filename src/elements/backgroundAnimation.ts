@@ -1,42 +1,68 @@
 import {IBackgroundSettings} from "./saveLoad.ts";
-export let background = new Image();
+
+export const background = new Image();
 export let isBackgroundLoaded = false;
 
-export const setBackgroundImage = (imageUrl) => {
+export const setBackgroundImage = (imageUrl: string) => {
     background.src = imageUrl;
     background.onload = () => {
         isBackgroundLoaded = true;
     };
 };
-export const drawBackground = (ctx, canvas, imageUrl, shakeIntensity, analyzer, dataArray) => {
+export const drawBackground = (ctx: CanvasRenderingContext2D, canvas, imageUrl, shakeIntensity, analyzer, dataArray) => {
     if (!isBackgroundLoaded) return;
     shakeIntensity = 1
 
     analyzer.getByteFrequencyData(dataArray);
-    let average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+    const average = dataArray.reduce((a: number, b: number) => a + b) / dataArray.length;
 
-    let scale = 1 + average / 512 * shakeIntensity;
-    let angle = Math.min((average / 512) * (shakeIntensity / 10), Math.PI / 4); // Limit the angle
+    const scale = 1 + average / 512 * shakeIntensity;
+    const angle = Math.min((average / 512) * (shakeIntensity / 10), Math.PI / 4); // Limit the angle
 
     ctx.save();
     ctx.translate(canvas.width / 2, canvas.height / 2);
     ctx.rotate(angle);
     ctx.scale(scale, scale);
     ctx.drawImage(background, -canvas.width / 2, -canvas.height / 2, canvas.width, canvas.height);
+
+    if (false) {
+        manipulateImage(ctx, canvas, average)
+    }
+
     ctx.restore();
 };
 
+export function manipulateImage(ctx:  CanvasRenderingContext2D, canvas, average) {
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
 
-export const animateBackground = (ctx, canvas, analyzer, dataArray, backgroundSettings: IBackgroundSettings) => {
-    const {shakeIntensity, backgroundImage, backgroundColor } = backgroundSettings;
-    // ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // Manipulate the image data
+    for (let i = 0; i < data.length; i += 4) {
+        // data[i]     - red
+        // data[i + 1] - green
+        // data[i + 2] - blue
+        // data[i + 3] - alpha
+        data[i] = data[i] + average; // Increase blue channel based on beat
+        // Ensure the value stays within the 0-255 range
+        if (data[i] > 255) {
+            data[i] = 255;
+        }
+    }
+
+    // Put the manipulated data back on the canvas
+    ctx.putImageData(imageData, 0, 0);
+}
+
+
+export const animateBackground = (ctx: CanvasRenderingContext2D, canvas, analyzer, dataArray, backgroundSettings: IBackgroundSettings) => {
+    const {shakeIntensity, backgroundImage} = backgroundSettings;
 
     // Get audio data
     analyzer.getByteFrequencyData(dataArray);
-    let average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+    const average = dataArray.reduce((a: number, b: number) => a + b) / dataArray.length;
 
     // Adjust shake intensity based on the beat
-    let currentShakeIntensity = shakeIntensity * (average / 255);
+    const currentShakeIntensity = shakeIntensity * (average / 255);
 
     drawBackground(ctx, canvas, backgroundImage, currentShakeIntensity, analyzer, dataArray);
 

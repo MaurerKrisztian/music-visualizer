@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebGL Music Visualizer</title>
+    <style>
+        body { text-align: center; }
+        #canvas { width: 1920px; height: 1080px; }
+        textarea { width: 600px; height: 120px; }
+    </style>
+</head>
+<body>
+<input type="file" id="imageInput" accept="image/*">
+<input type="file" id="audioInput" accept="audio/*"><br><br>
+<textarea id="vertexShaderCode">
+ attribute vec4 aVertexPosition;
+attribute vec2 aTextureCoord;
+varying highp vec2 vTextureCoord;
+uniform float uZoomFactor; // Zoom factor uniform
+
+void main(void) {
+    // Calculate the zoomed vertex positions
+    vec2 zoomedPos = aVertexPosition.xy * (1.0 + uZoomFactor);
+    // Apply zoom and keep the image centered
+    gl_Position = vec4(zoomedPos, aVertexPosition.z, aVertexPosition.w);
+
+    // Pass the texture coordinates to the fragment shader
+    vTextureCoord = aTextureCoord;
+}
+
+
+    </textarea><br>
+<textarea id="fragmentShaderCode">
+ precision highp float;
+varying highp vec2 vTextureCoord;
+uniform sampler2D uSampler;
+uniform float uRedFactor;
+uniform float uZoomFactor; // New uniform for zoom factor
+
+void main(void) {
+    vec2 zoomedCoord = (vTextureCoord - 0.5) * (1.0 - uZoomFactor) + 0.5;
+    vec4 textureColor = texture2D(uSampler, zoomedCoord);
+    gl_FragColor = vec4(textureColor.r * uRedFactor, textureColor.g, textureColor.b, 1.0);
+}
+
+    </textarea><br>
+<button onclick="reloadShaders()">Reload Shaders</button>
+
+
+<button id="renderToVideo">Record video</button>
+<button id="stopRender">Stop Render</button>
+
+
+<canvas id="canvas"></canvas>
+
+<script>
+    let recorder;
+    let chunks = [];
+
+    document.getElementById('renderToVideo').addEventListener('click', function() {
+        const mixedStream = new MediaStream();
+
+        // Get the canvas stream
+        const canvasStream = canvas.captureStream(60); // 60 FPS
+        canvasStream.getTracks().forEach(track => mixedStream.addTrack(track));
+
+        // Assuming 'audioContext' is your WebAudio context and 'audioSource' is the source node
+        const dest = audioContext.createMediaStreamDestination();
+        audioSource.connect(dest);
+        dest.stream.getTracks().forEach(track => mixedStream.addTrack(track));
+
+        // Setup MediaRecorder
+        recorder = new MediaRecorder(mixedStream, { mimeType: 'video/webm; codecs=vp9' });
+
+        recorder.ondataavailable = e => chunks.push(e.data);
+        recorder.onstop = exportVideo;
+
+        // Start recording
+        recorder.start();
+    });
+
+    document.getElementById('stopRender').addEventListener('click', function() {
+        if (recorder && recorder.state !== 'inactive') {
+            recorder.stop();
+            audioSource.disconnect(); // Stop the audio if it's still playing
+        }
+    });
+
+    function exportVideo() {
+        const blob = new Blob(chunks, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+
+        // Create a link to download the video
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'recording.webm';
+        a.click();
+        URL.revokeObjectURL(url);
+
+        chunks = []; // Clear the chunks array for future recordings
+    }
+
+
+    document.getElementById('renderToVideo').addEventListener('click', function() {
+        const mixedStream = new MediaStream();
+
+        // Get the canvas stream
+        const canvasStream = canvas.captureStream(60); // 60 FPS
+        canvasStream.getTracks().forEach(track => mixedStream.addTrack(track));
+
+        // Assuming 'audioContext' is your WebAudio context and 'audioSource' is the source node
+        const dest = audioContext.createMediaStreamDestination();
+        audioSource.connect(dest);
+        dest.stream.getTracks().forEach(track => mixedStream.addTrack(track));
+
+        // Setup MediaRecorder
+        const recorder = new MediaRecorder(mixedStream, { mimeType: 'video/webm; codecs=vp9' });
+
+        let chunks = [];
+        recorder.ondataavailable = e => chunks.push(e.data);
+        recorder.onstop = () => {
+            const blob = new Blob(chunks, { type: 'video/webm' });
+            const url = URL.createObjectURL(blob);
+
+            // Create a link to download the video
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'recording.webm';
+            a.click();
+            URL.revokeObjectURL(url);
+        };
+
+        // Start recording
+        recorder.start();
+
+        // Stop recording after the audio ends
+        audioSource.onended = () => recorder.stop();
+    });
+
+
+
+
+    const canvas = document.getElementById('canvas');
+    canvas.width = 1920;
+    canvas.height = 1080;
+    const gl = canvas.getContext('webgl');
+
+    let texture, audioContext, audioSource, analyser, dataArray, shaderProgram;
+
+    document.getElementById('imageInput').addEventListener('change', handleImage, false);
+    document.getElementById('audioInput').addEventListener('change', handleAudio, false);
+
+    function handleImage(event) {
+        const file = event.target.files[0];
+        const reader = new FileReader();
+
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                loadTexture(img);
+            };
+            img.src = e.target.result;
+        };
+
+        reader.readAsDataURL(file);
+    }
+
+    function handleAudio(event) {
+        const file = event.target.files[0];
+        const reader = new FileReader();
+
+        reader.onload = function(e) {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+
+            audioContext.decodeAudioData(e.target.result, function(buffer) {
+                if(audioSource) {
+                    audioSource.disconnect();
+                }
+                audioSource = audioContext.createBufferSource();
+                audioSource.buffer = buffer;
+
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+                audioSource.connect(analyser);
+                analyser.connect(audioContext.destination);
+
+                audioSource.start(0);
+
+                render();
+            }, function(error) {
+                console.error(error);
+            });
+        };
+
+        reader.readAsArrayBuffer(file);
+    }
+
+    function loadTexture(image) {
+        texture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+
+        reloadShaders(); // Initial shader setup
+    }
+
+    function createShader(type, source) {
+        const shader = gl.createShader(type);
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
+
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+            alert('An error occurred compiling the shaders: ' + gl.getShaderInfoLog(shader));
+            gl.deleteShader(shader);
+            return null;
+        }
+
+        return shader;
+    }
+
+    function reloadShaders() {
+        const vertexShaderCode = document.getElementById('vertexShaderCode').value;
+        const fragmentShaderCode = document.getElementById('fragmentShaderCode').value;
+
+        const vertexShader = createShader(gl.VERTEX_SHADER, vertexShaderCode);
+        const fragmentShader = createShader(gl.FRAGMENT_SHADER, fragmentShaderCode);
+
+        const newShaderProgram = gl.createProgram();
+        gl.attachShader(newShaderProgram, vertexShader);
+        gl.attachShader(newShaderProgram, fragmentShader);
+        gl.linkProgram(newShaderProgram);
+
+        if (!gl.getProgramParameter(newShaderProgram, gl.LINK_STATUS)) {
+            alert('Unable to initialize the shader program: ' + gl.getProgramInfoLog(newShaderProgram));
+            return;
+        }
+
+        shaderProgram = newShaderProgram;
+        setupShaders();
+    }
+
+    function setupShaders() {
+        gl.useProgram(shaderProgram);
+
+        const vertexPosition = gl.getAttribLocation(shaderProgram, 'aVertexPosition');
+        const textureCoord = gl.getAttribLocation(shaderProgram, 'aTextureCoord');
+        const uSampler = gl.getUniformLocation(shaderProgram, 'uSampler');
+        const uRedFactor = gl.getUniformLocation(shaderProgram, 'uRedFactor');
+
+        const positionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+        const positions = [
+            -1.0,  1.0,
+            -1.0, -1.0,
+            1.0, -1.0,
+            1.0,  1.0,
+        ];
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+        gl.vertexAttribPointer(vertexPosition, 2, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(vertexPosition);
+
+        const textureCoordBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
+        const textureCoordinates = [
+            0.0, 0.0,
+            0.0, 1.0,
+            1.0, 1.0,
+            1.0, 0.0,
+        ];
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordinates), gl.STATIC_DRAW);
+        gl.vertexAttribPointer(textureCoord, 2, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(textureCoord);
+
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.uniform1i(uSampler, 0);
+    }
+
+    function render() {
+        if (analyser) {
+            analyser.getByteFrequencyData(dataArray);
+            const redFactor = dataArray.reduce((a, b) => a + b) / dataArray.length / 255;
+            const uRedFactor = gl.getUniformLocation(shaderProgram, 'uRedFactor');
+            gl.uniform1f(uRedFactor, redFactor);
+
+            // Calculate a simple beat intensity factor
+            const averageVolume = dataArray.reduce((a, b) => a + b) / dataArray.length;
+            const beatIntensity = (averageVolume / 128) - 1; // Adjust this for more/less sensitivity
+            const uZoomFactor = gl.getUniformLocation(shaderProgram, 'uZoomFactor');
+            gl.uniform1f(uZoomFactor, Math.max(0, beatIntensity)); // Ensure zoom factor is not negative
+        }
+
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+        requestAnimationFrame(render);
+    }
+
+
+
+
+    // Initialize with default shaders
+    reloadShaders();
+</script>
+</body>
+</html>
+

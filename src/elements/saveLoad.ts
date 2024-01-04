@@ -1,5 +1,3 @@
-
-
 export interface ISaveOptions {
     text: ITextSettings
     circle: ICircleSettings
@@ -14,6 +12,7 @@ export interface ICircleSettings {
     beatSpeedUp: number,
     zigzagSmoothness: number
 }
+
 export interface ITextSettings {
     maxSizeMultiplier: number,
     smoothness: number,
@@ -23,8 +22,8 @@ export interface ITextSettings {
     fontColor: string,
     textInput: string,
     selectedFont: string,
-    x: number;  // X coordinate for the text
-    y: number;  // Y coordinate for the text
+    x: number;
+    y: number;
 }
 
 export interface IBackgroundSettings {
@@ -32,9 +31,10 @@ export interface IBackgroundSettings {
     backgroundImage: string,
     shakeIntensity: number
 }
-export async function save(saveOptions: ISaveOptions){
+
+export async function save(saveOptions: ISaveOptions) {
     const options = Object.assign({}, saveOptions);
-    console.log("type: ", options.background.backgroundImage, typeof  options.background.backgroundImage, options.background.backgroundImage instanceof  Blob)
+    console.log("type: ", options.background.backgroundImage, typeof options.background.backgroundImage, options.background.backgroundImage instanceof Blob)
     if (options.background.backgroundImage !== "") {
         // Convert Blob to Base64
         const blob = await fetch(options.background.backgroundImage).then(res => res.blob());
@@ -46,9 +46,9 @@ export async function save(saveOptions: ISaveOptions){
     localStorage.setItem("save", jsonOptions);
 }
 
-export function loadOptions(): ISaveOptions{
-   const options = localStorage.getItem("save");
-   const parsedOptions: ISaveOptions = JSON.parse(options || "{}");
+export function loadOptions(): ISaveOptions {
+    const options = localStorage.getItem("save");
+    const parsedOptions: ISaveOptions = JSON.parse(options || "{}");
 
     if (typeof parsedOptions.background.backgroundImage === 'string' && parsedOptions.background.backgroundImage !== "") {
         const blob = base64ToBlob(parsedOptions.background.backgroundImage);
@@ -56,9 +56,8 @@ export function loadOptions(): ISaveOptions{
         parsedOptions.background.backgroundImage = blobUrl;
     }
 
-   return parsedOptions;
+    return parsedOptions;
 }
-
 
 
 // Utility function to convert Blob to Base64 string
@@ -71,8 +70,6 @@ function blobToBase64(blob: Blob): Promise<string> {
     });
 }
 
-
-// Utility function to convert Base64 string to Blob
 function base64ToBlob(base64: string): Blob {
     const byteString = atob(base64.split(',')[1]);
     const mimeString = base64.split(',')[0].split(':')[1].split(';')[0];

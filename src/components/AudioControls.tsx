@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, {useEffect, useState} from 'react';
 
-const AudioControls = ({ audioRef }) => {
+const AudioControls = ({audioRef}: { audioRef: React.MutableRefObject<HTMLAudioElement> }) => {
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
     const [volume, setVolume] = useState(1); // Range from 0 to 1
@@ -16,14 +16,14 @@ const AudioControls = ({ audioRef }) => {
         }
     };
 
-    const handleTimeChange = (e) => {
-        const newTime = e.target.value;
+    const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newTime = parseInt(e.target.value);
         audioRef.current.currentTime = newTime;
         setCurrentTime(newTime);
     };
 
-    const handleVolumeChange = (e) => {
-        const newVolume = e.target.value;
+    const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newVolume = parseInt(e.target.value);
         audioRef.current.volume = newVolume;
         setVolume(newVolume);
     };
@@ -38,7 +38,7 @@ const AudioControls = ({ audioRef }) => {
         return () => clearInterval(interval);
     }, [isPlaying, audioRef]);
 
-    const formatTime = (seconds) => {
+    const formatTime = (seconds: number) => {
         const minutes = Math.floor(seconds / 60);
         const remainingSeconds = Math.floor(seconds % 60);
         return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;

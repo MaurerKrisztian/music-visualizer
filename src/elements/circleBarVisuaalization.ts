@@ -1,4 +1,4 @@
-// VisualizationSettings.ts
+
 export interface BarSettings {
     widthMultiplier: number;
     lengthMultiplier: number;
@@ -9,9 +9,9 @@ export interface CircleSettings {
     baseRadius: number;
     growthFactor: number;
     color: string;
-    image?: HTMLImageElement; // Optional, can be undefined or an HTMLImageElement
-    imageX: number; // X coordinate for the image
-    imageY: number; // Y coordinate for the image
+    image?: HTMLImageElement;
+    imageX: number;
+    imageY: number;
 }
 
 export interface MusicVisualizationSettings {
@@ -19,11 +19,7 @@ export interface MusicVisualizationSettings {
     bars: BarSettings;
 }
 
-export const drawMusicVisualization = (ctx, bufferLength, dataArray, settings: MusicVisualizationSettings) => {
-    const canvasWidth = ctx.canvas.width;
-    const canvasHeight = ctx.canvas.height;
-    // const centerX = canvasWidth / 2 + settings.circle.imageX; // Add X offset
-    // const centerY = canvasHeight / 2 + settings.circle.imageY; // Add Y offset
+export const drawMusicVisualization = (ctx: CanvasRenderingContext2D, bufferLength, dataArray, settings: MusicVisualizationSettings) => {
     const centerX = settings.circle.imageX;
     const centerY = settings.circle.imageY;
     let radius = settings.circle.baseRadius;

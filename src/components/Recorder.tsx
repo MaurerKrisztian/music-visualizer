@@ -1,6 +1,10 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, {useState, useRef} from 'react';
 
-const Recorder = ({ audioRef, canvasRef }) => {
+const Recorder = ({audioRef, canvasRef}: {
+    audioRef: React.MutableRefObject<HTMLAudioElement & {
+        captureStream(...args): MediaStream;
+    }>; canvasRef: React.RefObject<HTMLCanvasElement>
+}) => {
     const [isRecording, setIsRecording] = useState(false);
     const mediaRecorderRef = useRef(null);
     const recordedChunksRef = useRef([]);
@@ -8,8 +12,8 @@ const Recorder = ({ audioRef, canvasRef }) => {
     const startRecording = () => {
 
         if (audioRef.current && canvasRef.current) {
-            const audioStream = audioRef.current.captureStream();
-            const canvasStream = canvasRef.current.captureStream(33); // Try 25 FPS
+            const audioStream = audioRef.current.captureStream(65);
+            const canvasStream = canvasRef.current.captureStream(65); // Try 25 FPS
 
             console.log("Audio Stream Tracks:", audioStream.getTracks());
             console.log("Canvas Stream Tracks:", canvasStream.getTracks());
@@ -17,7 +21,10 @@ const Recorder = ({ audioRef, canvasRef }) => {
             const combinedStream = new MediaStream([...canvasStream.getTracks(), ...audioStream.getTracks()]);
             console.log("Combined Stream Tracks:", combinedStream.getTracks());
 
-            mediaRecorderRef.current = new MediaRecorder(combinedStream, { mimeType: 'video/webm', videoBitsPerSecond: 2 * 1024 * 1024 });
+            mediaRecorderRef.current = new MediaRecorder(combinedStream, {
+                mimeType: 'video/webm; codecs=H264',
+                videoBitsPerSecond: 2 * 1024 * 1024
+            });
 
             mediaRecorderRef.current.ondataavailable = (event) => {
                 if (event.data.size > 0) {
@@ -40,7 +47,7 @@ const Recorder = ({ audioRef, canvasRef }) => {
 
     const saveRecording = () => {
         mediaRecorderRef.current.onstop = () => {
-            const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+            const blob = new Blob(recordedChunksRef.current, {type: 'video/webm'});
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;

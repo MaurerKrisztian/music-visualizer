@@ -7,22 +7,20 @@ const animateText = (
     textSettings: ITextSettings
 ) => {
     audioAnalyser.getByteFrequencyData(dataArray);
-    let average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+    const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
 
-    let newFontSize = (textSettings.fontSize + average * textSettings.maxSizeMultiplier / 255).toFixed(2);
+    const newFontSize = (textSettings.fontSize + average * textSettings.maxSizeMultiplier / 255).toFixed(2);
     ctx.font = `${newFontSize}px ${textSettings.selectedFont}`;
-    let textMetrics = ctx.measureText(textSettings.textInput);
+    const textMetrics = ctx.measureText(textSettings.textInput);
 
     // Calculate text dimensions
-    let textWidth = textMetrics.width;
-    let textHeight = parseInt(newFontSize);
+    const textWidth = textMetrics.width;
+    const textHeight = parseInt(newFontSize);
 
-    console.log(textSettings.x, textSettings.y)
     // Adjust X and Y to align the middle of the text
-    let x = textSettings.x - textWidth / 2;
-    let y = textSettings.y + textHeight / 2; // Adjust for baseline, considering font size as height
+    const x = textSettings.x - textWidth / 2;
+    const y = textSettings.y + textHeight / 2; // Adjust for baseline, considering font size as height
 
-    // ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
     ctx.strokeStyle = textSettings.borderColor;
     ctx.lineWidth = textSettings.borderThickness;
     ctx.strokeText(textSettings.textInput, x, y);

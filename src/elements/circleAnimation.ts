@@ -1,8 +1,16 @@
 import {ICircleSettings} from "./saveLoad.ts";
 
-export const createCircle = (canvas, circleSize, circleSpeed, circleColor, random = false) => {
-    // Create circle logic
-    let circle = {
+export interface ICircle {
+    x: number;
+    y: number;
+    size: number;
+    xDelta: number;
+    ySpeed: number;
+    color: string;
+}
+
+export const createCircle = (canvas, circleSize, circleSpeed, circleColor, random = false): ICircle => {
+    return {
         x: random ? Math.random() * canvas.width : Math.random() * canvas.width,
         y: random ? Math.random() * canvas.height : canvas.height + Math.random() * 100, // Start below the canvas
         size: circleSize,
@@ -10,20 +18,18 @@ export const createCircle = (canvas, circleSize, circleSpeed, circleColor, rando
         ySpeed: circleSpeed,
         color: circleColor
     };
-
-    return circle;
 };
 
 export const initializeCircles = (canvas, circleAnimationRef: ICircleSettings) => {
-    let circles = [];
+    const circles = [];
     for (let i = 0; i < circleAnimationRef.numberOfCircles; i++) {
         circles.push(createCircle(canvas, circleAnimationRef.circleSize, circleAnimationRef.circleSpeed, circleAnimationRef.circleColor, true));
     }
     return circles;
 };
 
-export const animateCircles = (ctx, circles, analyzer, dataArray, circleAnimationSettings: ICircleSettings) => {
-    let average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+export const animateCircles = (ctx, circles: ICircle[], analyzer, dataArray, circleAnimationSettings: ICircleSettings) => {
+    const average = dataArray.reduce((a: number, b: number) => a + b) / dataArray.length;
 
     let speed = 4;
     if (circleAnimationSettings.zigzagSmoothness > 5) {
