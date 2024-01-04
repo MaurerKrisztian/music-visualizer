@@ -63,7 +63,7 @@ const AudioControls = ({audioRef}: { audioRef: React.MutableRefObject<HTMLAudioE
             </div>
 
 
-            <img src="./public/volume.svg" alt="Description of SVG" width={25} height={25}/> <input
+            <img src="./assets/volume.svg" alt="Description of SVG" width={25} height={25}/> <input
             type="range"
             min="0"
             max="1"
