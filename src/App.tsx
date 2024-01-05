@@ -62,11 +62,11 @@ const App: React.FC = () => {
 
 
     const circleAnimationSettingsRef = useRef<ICircleSettings>({
-        circleSize: 10,
+        circleSize: 5,
         circleSpeed: 1,
         circleColor: '#d3d3d3',
-        numberOfCircles: 5,
-        beatSpeedUp: 12,
+        numberOfCircles: 11,
+        beatSpeedUp: 25,
         zigzagSmoothness: 1
     });
 
@@ -666,7 +666,8 @@ const App: React.FC = () => {
                     </label>
                     <label>
                         Use Full Width:
-                        <input type="checkbox" defaultChecked
+                        <input type="checkbox"
+                               defaultChecked={simpleBarSettingsRef.current.useFullWidth}
                                onChange={e => simpleBarSettingsRef.current.useFullWidth = e.target.checked}/>
                     </label>
 
