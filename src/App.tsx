@@ -17,6 +17,7 @@ import {
     drawMusicVisualization,
     MusicVisualizationSettings
 } from "./elements/circleBarVisuaalization.ts";
+import {drawBarVisualization, ISimpleBarSettings} from "./elements/barAnimation.ts";
 
 const App: React.FC = () => {
     const [file, setFile] = useState<File | null>(null);
@@ -37,6 +38,14 @@ const App: React.FC = () => {
         "FullHD": {width: 1920, height: 1080},
         "2K": {width: 2560, height: 1440}
     };
+
+
+    const enableVisualsSettingsRef = useRef({
+        simpleBar: true,
+        circleBar: false,
+        backgroundCircles: true,
+        text: true,
+    });
 
     const textSettingsRef = useRef<ITextSettings>({
         maxSizeMultiplier: 55,
@@ -60,6 +69,21 @@ const App: React.FC = () => {
         beatSpeedUp: 12,
         zigzagSmoothness: 1
     });
+
+    const simpleBarSettingsRef = useRef<ISimpleBarSettings>(
+        {
+            barStyle: "top",
+            spacing: 11,
+            barLength: 1,
+            barWidth: 22,
+            beatMultiplier: 2,
+            barColor: "white",
+            numBars: 11,
+            useFullWidth: true,
+            xPos: 50,
+            yPos: 100
+        }
+    );
 
 
     const backgroundSettingsRef = useRef<IBackgroundSettings>({
@@ -107,6 +131,7 @@ const App: React.FC = () => {
         background: boolean;
         render: boolean;
         musicVisualization: boolean;
+        simpleBar: boolean;
     }
 
     const [settingsVisibility, setSettingsVisibility] = useState<ISettingsVisibility>({
@@ -116,6 +141,7 @@ const App: React.FC = () => {
         background: false,
         render: false,
         musicVisualization: false,
+        simpleBar: false,
     });
     const toggleSettings = (setting: keyof ISettingsVisibility) => {
         setSettingsVisibility(prevSettings => ({
@@ -167,10 +193,10 @@ const App: React.FC = () => {
         }
 
 
-        setTimeout(()=>{
+        setTimeout(() => {
             console.log(renderingSettingsRef.current.bitRateInMb, audioRef.current.duration)
             setEstimatedFileSize(estimateFileSize(renderingSettingsRef.current.bitRateInMb, audioRef.current.duration))
-        },222)
+        }, 222)
 
     };
 
@@ -249,24 +275,31 @@ const App: React.FC = () => {
             }
 
 
-            animateCircles(ctx, circles, analyserRef.current, dataArrayRef.current, circleAnimationSettingsRef.current);
+            if (enableVisualsSettingsRef.current.backgroundCircles) {
+                animateCircles(ctx, circles, analyserRef.current, dataArrayRef.current, circleAnimationSettingsRef.current);
+            }
 
-
-            // const canvas = canvasRef.current;
-            // const ctx = canvas.getContext('2d');
             const bufferLength = analyserRef.current.frequencyBinCount;
             const dataArray = dataArrayRef.current //new Uint8Array(bufferLength);
 
-            drawMusicVisualization(ctx, bufferLength, dataArray, musicVisSettingsRef.current);
+            analyserRef.current.getByteFrequencyData(dataArray);
+            const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
 
+            if (enableVisualsSettingsRef.current.simpleBar) {
+                drawBarVisualization(ctx, bufferLength, dataArray, simpleBarSettingsRef.current)
+            }
 
-            animateText(
-                ctx,
-                analyserRef.current,
-                dataArrayRef.current,
-                textSettingsRef.current
-            );
+            if (enableVisualsSettingsRef.current.circleBar) {
+                drawMusicVisualization(ctx, bufferLength, dataArray, musicVisSettingsRef.current);
+            }
 
+            if (enableVisualsSettingsRef.current.text) {
+                animateText(
+                    ctx,
+                    average,
+                    textSettingsRef.current
+                );
+            }
 
             animationFrameRef.current = requestAnimationFrame(animate);
         };
@@ -592,6 +625,78 @@ const App: React.FC = () => {
             )}
 
 
+            <div className="group-header" onClick={() => toggleSettings("simpleBar")}>
+                Simple Bar Settings
+            </div>
+            {settingsVisibility.simpleBar && (
+                <div className="settings-group">
+                    <label>
+                        Bar Style:
+                        <select defaultValue="bottom"
+                                onChange={e => simpleBarSettingsRef.current.barStyle = e.target.value}>
+                            <option value="top">Top</option>
+                            <option value="bottom">Bottom</option>
+                            <option value="both">Both</option>
+                        </select>
+                    </label>
+                    <label>
+                        Spacing:
+                        <input type="number" defaultValue="11"
+                               onChange={e => simpleBarSettingsRef.current.spacing = parseInt(e.target.value)}/>
+                    </label>
+                    <label>
+                        Bar Width:
+                        <input type="number" defaultValue="22"
+                               onChange={e => simpleBarSettingsRef.current.barWidth = parseInt(e.target.value)}/>
+                    </label>
+                    <label>
+                        Beat Multiplier:
+                        <input type="number" defaultValue="2"
+                               onChange={e => simpleBarSettingsRef.current.beatMultiplier = parseFloat(e.target.value)}/>
+                    </label>
+                    <label>
+                        Bar Color:
+                        <input type="color" defaultValue="#ffffff"
+                               onChange={e => simpleBarSettingsRef.current.barColor = e.target.value}/>
+                    </label>
+                    <label>
+                        Number of Bars:
+                        <input type="number" defaultValue="11"
+                               onChange={e => simpleBarSettingsRef.current.numBars = parseInt(e.target.value)}/>
+                    </label>
+                    <label>
+                        Use Full Width:
+                        <input type="checkbox" defaultChecked
+                               onChange={e => simpleBarSettingsRef.current.useFullWidth = e.target.checked}/>
+                    </label>
+
+                    <label>
+                        X Position (%):
+                        <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            defaultValue="50"
+                            onChange={e => simpleBarSettingsRef.current.xPos = parseInt(e.target.value)}
+                        />
+                        {simpleBarSettingsRef.current.xPos}%
+                    </label>
+
+                    <label>
+                        Y Position (%):
+                        <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            defaultValue="50"
+                            onChange={e => simpleBarSettingsRef.current.yPos = parseInt(e.target.value)}
+                        />
+                        {simpleBarSettingsRef.current.yPos}%
+                    </label>
+                </div>
+            )}
+
+
             <div className="group-header" onClick={() => toggleSettings("background")}>
                 Background settings
             </div>
@@ -625,6 +730,46 @@ const App: React.FC = () => {
 
 
             {/* Repeat for other groups as needed */}
+
+
+            <div className="visuals-settings">
+                <label>
+                    Enable Simple Bar:
+                    <input
+                        type="checkbox"
+                        defaultChecked={enableVisualsSettingsRef.current.simpleBar}
+                        onChange={(e) => enableVisualsSettingsRef.current.simpleBar = e.target.checked}
+                    />
+                </label>
+
+                <label>
+                    Enable Circle Bar:
+                    <input
+                        type="checkbox"
+                        defaultChecked={enableVisualsSettingsRef.current.circleBar}
+                        onChange={(e) => enableVisualsSettingsRef.current.circleBar = e.target.checked}
+                    />
+                </label>
+
+                <label>
+                    Enable Background Circles:
+                    <input
+                        type="checkbox"
+                        defaultChecked={enableVisualsSettingsRef.current.backgroundCircles}
+                        onChange={(e) => enableVisualsSettingsRef.current.backgroundCircles = e.target.checked}
+                    />
+                </label>
+
+                <label>
+                    Enable Text:
+                    <input
+                        type="checkbox"
+                        defaultChecked={enableVisualsSettingsRef.current.text}
+                        onChange={(e) => enableVisualsSettingsRef.current.text = e.target.checked}
+                    />
+                </label>
+            </div>
+
 
             <canvas ref={canvasRef} style={{width: "80%", height: "auto"}} width="1920" height="1080"></canvas>
             <audio ref={audioRef} crossOrigin="anonymous"/>

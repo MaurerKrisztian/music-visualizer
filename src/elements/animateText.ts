@@ -2,13 +2,9 @@ import {ITextSettings} from "./saveLoad.ts";
 
 const animateText = (
     ctx: CanvasRenderingContext2D,
-    audioAnalyser: AnalyserNode,
-    dataArray: Uint8Array,
+    average: number,
     textSettings: ITextSettings
 ) => {
-    audioAnalyser.getByteFrequencyData(dataArray);
-    const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
-
     const newFontSize = (textSettings.fontSize + average * textSettings.maxSizeMultiplier / 255).toFixed(2);
     ctx.font = `${newFontSize}px ${textSettings.selectedFont}`;
     const textMetrics = ctx.measureText(textSettings.textInput);
