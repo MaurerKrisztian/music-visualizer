@@ -1,4 +1,4 @@
-import React, {useRef} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {
     fontFile,
     generateSaveDataString,
@@ -7,6 +7,7 @@ import {
     saveToLocalstorage
 } from "../elements/saveLoad.ts";
 import {downloadString} from "../utils.ts";
+import MyNotification from "./Notification.tsx";
 
 interface SaveLoadButtonsProps {
     settings: {
@@ -20,7 +21,41 @@ interface SaveLoadButtonsProps {
     }
 }
 
+// TODO: refactor this component
 const SaveLoadButtons: React.FC<SaveLoadButtonsProps> = ({settings}) => {
+    const [saveMessage, setSaveMessage] = useState('');
+
+    useEffect(() => {
+        const handleKeyPress = (event) => {
+            // Example: Ctrl + S for Save, Ctrl + L for Load
+            if (event.ctrlKey && event.key === 's') {
+                event.preventDefault();
+                handleSaveShortcut();
+            } else if (event.ctrlKey && event.key === 'l') {
+                event.preventDefault();
+                handleLoadShortcut();
+            }
+        };
+        window.addEventListener('keydown', handleKeyPress);
+        // Cleanup
+        return () => {
+            window.removeEventListener('keydown', handleKeyPress);
+        };
+    }, []); // Empty dependency array means this effect runs once on mount
+
+    const handleSaveShortcut = () => {
+        console.log("Project saved")
+        handleSaveToLocalstorage()
+
+        setSaveMessage('Project saved successfully!');
+        // Reset the message after a delay
+        setTimeout(() => setSaveMessage(''), 3000);
+    };
+
+    const handleLoadShortcut = () => {
+        handleLoadFromLocalstorage()
+    };
+
 
     const {
         settingsVisibility,
@@ -31,7 +66,7 @@ const SaveLoadButtons: React.FC<SaveLoadButtonsProps> = ({settings}) => {
         renderingSettingsRef,
         enableVisualsSettingsRef
     } = settings;
-    const handleSave = () => {
+    const handleSaveToLocalstorage = () => {
         saveToLocalstorage({
             text: textSettingsRef.current,
             background: backgroundSettingsRef.current,
@@ -55,7 +90,7 @@ const SaveLoadButtons: React.FC<SaveLoadButtonsProps> = ({settings}) => {
         downloadString(data, "save-preset.canvasbeats")
     }
 
-    const handleLoad = async () => {
+    const handleLoadFromLocalstorage = async () => {
         const options = await loadFromLocalstorage();
         circleAnimationSettingsRef.current = options.circle;
         backgroundSettingsRef.current = options.background;
@@ -107,10 +142,13 @@ const SaveLoadButtons: React.FC<SaveLoadButtonsProps> = ({settings}) => {
     };
 
 
+
+
     return (
         <div style={{textAlign: 'right', margin: '10px'}}>
-            <button onClick={handleSave}>Quick save</button>
-            <button onClick={handleLoad} style={{margin: '5px'}}>Quick load</button>
+            <MyNotification message={saveMessage} duration={3000} />
+            <button onClick={handleSaveToLocalstorage}>Quick save</button>
+            <button onClick={handleLoadFromLocalstorage} style={{margin: '5px'}}>Quick load</button>
             <button onClick={handleSaveToFile}>Save to file</button>
             <button onClick={handleLoadFromFile}>Load from file</button>
             <input
