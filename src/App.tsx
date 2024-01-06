@@ -428,7 +428,7 @@ const App: React.FC = () => {
                     </label>
                     <label>
                         Bitrate:
-                        <input type="number" defaultValue="6"
+                        <input type="number" defaultValue={renderingSettingsRef.current.bitRateInMb}
                                onChange={(e) => {
                                    renderingSettingsRef.current.bitRateInMb = parseFloat(e.target.value);
                                    console.log(estimateFileSize(renderingSettingsRef.current.bitRateInMb, audioRef.current.duration))
@@ -451,7 +451,7 @@ const App: React.FC = () => {
                 <div className="settings-group">
                     <label>
                         Text:
-                        <input type="text" defaultValue="Sample Text"
+                        <input type="text" defaultValue={textSettingsRef.current.textInput}
                                onChange={e => textSettingsRef.current.textInput = e.target.value}/>
                     </label>
                     <label>
@@ -461,7 +461,7 @@ const App: React.FC = () => {
                             name="text.x"
                             min="0"
                             max={canvasWidth}
-                            defaultValue="0"
+                            defaultValue={textSettingsRef.current.x}
                             onChange={(e) => textSettingsRef.current.x = parseInt(e.target.value)}
                         />
                     </label>
@@ -472,33 +472,34 @@ const App: React.FC = () => {
                             name="text.y"
                             min="0"
                             max={canvasHeight}
-                            defaultValue="0"
+                            defaultValue={textSettingsRef.current.y}
                             onChange={(e) => textSettingsRef.current.y = parseInt(e.target.value)}
                         />
                     </label>
                     <label>
                         Max Size Multiplier:
-                        <input type="number" defaultValue="55"
+                        <input type="number" defaultValue={textSettingsRef.current.maxSizeMultiplier}
                                onChange={e => textSettingsRef.current.maxSizeMultiplier = parseFloat(e.target.value)}/>
                     </label>
                     <label>
                         Border Color:
-                        <input type="color" defaultValue="#000000"
+                        <input type="color" defaultValue={textSettingsRef.current.borderColor}
                                onChange={e => textSettingsRef.current.borderColor = e.target.value}/>
                     </label>
                     <label>
                         Border Thickness:
-                        <input type="number" defaultValue="1"
+                        <input type="number" defaultValue={textSettingsRef.current.borderThickness}
                                onChange={e => textSettingsRef.current.borderThickness = parseInt(e.target.value)}/>
                     </label>
                     <label>
                         Font Size:
-                        <input type="number" defaultValue="20"
+                        <input type="number"
+                               defaultValue={textSettingsRef.current.fontSize}
                                onChange={e => textSettingsRef.current.fontSize = parseInt(e.target.value)}/>
                     </label>
                     <label>
                         Font Color:
-                        <input type="color" defaultValue="#000000"
+                        <input type="color" defaultValue={textSettingsRef.current.fontColor}
                                onChange={e => textSettingsRef.current.fontColor = e.target.value}/>
                     </label>
                     <div className="group-header" onClick={() => toggleSettings("font")}>
@@ -614,29 +615,29 @@ const App: React.FC = () => {
                 <div className="settings-group">
                     <label>
                         Number of Circles:
-                        <input type="number" defaultValue="11"
+                        <input type="number" defaultValue={circleAnimationSettingsRef.current.numberOfCircles}
                                onChange={(e) => {
                                    circleAnimationSettingsRef.current.numberOfCircles = parseInt(e.target.value);
                                }}/>
                     </label>
                     <label>
                         Circle Size:
-                        <input type="number" defaultValue="12"
+                        <input type="number" defaultValue={circleAnimationSettingsRef.current.circleSize}
                                onChange={e => circleAnimationSettingsRef.current.circleSize = parseFloat(e.target.value)}/>
                     </label>
                     <label>
                         beat speed up factor:
-                        <input type="number" defaultValue="12"
+                        <input type="number" defaultValue={circleAnimationSettingsRef.current.beatSpeedUp}
                                onChange={e => circleAnimationSettingsRef.current.beatSpeedUp = parseFloat(e.target.value)}/>
                     </label>
                     <label>
                         Circle Speed:
-                        <input type="number" defaultValue="11"
+                        <input type="number" defaultValue={circleAnimationSettingsRef.current.circleSpeed}
                                onChange={e => circleAnimationSettingsRef.current.circleSpeed = parseFloat(e.target.value)}/>
                     </label>
                     <label>
                         Circle Color:
-                        <input type="color" defaultValue="Red"
+                        <input type="color" defaultValue={circleAnimationSettingsRef.current.circleColor}
                                onChange={e => circleAnimationSettingsRef.current.circleColor = e.target.value}/>
                     </label>
                 </div>
@@ -650,7 +651,7 @@ const App: React.FC = () => {
                 <div className="settings-group">
                     <label>
                         Bar Style:
-                        <select defaultValue="bottom"
+                        <select defaultValue={simpleBarSettingsRef.current.barStyle}
                                 onChange={e => simpleBarSettingsRef.current.barStyle = e.target.value}>
                             <option value="top">Top</option>
                             <option value="bottom">Bottom</option>
@@ -659,27 +660,27 @@ const App: React.FC = () => {
                     </label>
                     <label>
                         Spacing:
-                        <input type="number" defaultValue="11"
+                        <input type="number" defaultValue={simpleBarSettingsRef.current.spacing}
                                onChange={e => simpleBarSettingsRef.current.spacing = parseInt(e.target.value)}/>
                     </label>
                     <label>
                         Bar Width:
-                        <input type="number" defaultValue="22"
+                        <input type="number" defaultValue={simpleBarSettingsRef.current.barWidth}
                                onChange={e => simpleBarSettingsRef.current.barWidth = parseInt(e.target.value)}/>
                     </label>
                     <label>
                         Beat Multiplier:
-                        <input type="number" defaultValue="2"
+                        <input type="number" defaultValue={simpleBarSettingsRef.current.beatMultiplier}
                                onChange={e => simpleBarSettingsRef.current.beatMultiplier = parseFloat(e.target.value)}/>
                     </label>
                     <label>
                         Bar Color:
-                        <input type="color" defaultValue="#ffffff"
+                        <input type="color" defaultValue={simpleBarSettingsRef.current.barColor}
                                onChange={e => simpleBarSettingsRef.current.barColor = e.target.value}/>
                     </label>
                     <label>
                         Number of Bars:
-                        <input type="number" defaultValue="11"
+                        <input type="number" defaultValue={simpleBarSettingsRef.current.numBars}
                                onChange={e => simpleBarSettingsRef.current.numBars = parseInt(e.target.value)}/>
                     </label>
                     <label>
@@ -695,7 +696,7 @@ const App: React.FC = () => {
                             type="range"
                             min="0"
                             max="100"
-                            defaultValue="50"
+                            defaultValue={simpleBarSettingsRef.current.xPos}
                             onChange={e => simpleBarSettingsRef.current.xPos = parseInt(e.target.value)}
                         />
                         {simpleBarSettingsRef.current.xPos}%
@@ -707,7 +708,7 @@ const App: React.FC = () => {
                             type="range"
                             min="0"
                             max="100"
-                            defaultValue="50"
+                            defaultValue={simpleBarSettingsRef.current.yPos}
                             onChange={e => simpleBarSettingsRef.current.yPos = parseInt(e.target.value)}
                         />
                         {simpleBarSettingsRef.current.yPos}%
