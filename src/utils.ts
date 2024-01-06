@@ -37,3 +37,27 @@ export function base64ToImageUrl(base64) {
     const imageUrl = URL.createObjectURL(blob);
     return imageUrl;
 }
+
+
+export function downloadString(text: string, filename: string) {
+    // Create a Blob from the text
+    const blob = new Blob([text], { type: 'text/plain' });
+
+    // Create an anchor element (`<a>`) for the download
+    const link = document.createElement('a');
+
+    // Set the download attribute with the specified filename
+    link.download = filename;
+
+    // Create a URL for the Blob and set it as the href of the link
+    link.href = window.URL.createObjectURL(blob);
+
+    // Append the link to the body (required for Firefox)
+    document.body.appendChild(link);
+
+    // Simulate a click on the link to trigger the download
+    link.click();
+
+    // Remove the link after triggering the download
+    document.body.removeChild(link);
+}

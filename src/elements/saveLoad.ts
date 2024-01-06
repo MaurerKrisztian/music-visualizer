@@ -4,7 +4,7 @@ import {ISaveOptions} from "../interfaces/save-load.interface.ts";
 
 export let fontFile = null;
 
-async function generateSaveDataString(saveOptions: ISaveOptions): Promise<string> {
+export async function generateSaveDataString(saveOptions: ISaveOptions): Promise<string> {
     const options = Object.assign({}, saveOptions);
     if (options.background.backgroundImage !== "") {
         options.background.backgroundImage = await imageUrlToBase64(options.background.backgroundImage);
@@ -14,7 +14,7 @@ async function generateSaveDataString(saveOptions: ISaveOptions): Promise<string
         options.extra.fontFile = await blobToBase64(saveOptions.text.fontFile);
     }
 
-    return JSON.stringify(options);
+    return JSON.stringify(options, null, 2);
 }
 
 export function loadFont(file: Blob, textSettingsRef) {
@@ -26,7 +26,7 @@ export function loadFont(file: Blob, textSettingsRef) {
     }).catch(error => console.error('Error loading font:', error));
 }
 
-async function loadFromString(options: string): Promise<ISaveOptions> {
+export async function loadFromString(options: string): Promise<ISaveOptions> {
     const parsedOptions: ISaveOptions = JSON.parse(options || "{}");
 
     if (typeof parsedOptions.background.backgroundImage === 'string' && parsedOptions.background.backgroundImage !== "") {
