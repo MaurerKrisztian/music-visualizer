@@ -3,10 +3,7 @@ import animateText from "./elements/animateText.ts";
 import {animateCircles, ICircle, initializeCircles} from "./elements/circleAnimation.ts";
 import {animateBackground, setBackgroundImage} from "./elements/backgroundAnimation.ts";
 import {
-    fontFile,
     loadFont,
-    loadFromLocalstorage,
-    saveToLocalstorage
 } from "./elements/saveLoad.ts";
 import AudioControls from "./components/AudioControls.tsx";
 import defaultAudio from './assets/music.mp3';
@@ -24,6 +21,7 @@ import {
     ITextSettings
 } from "./interfaces/settings.interface.ts";
 import SaveLoad from "./components/SaveLoad.tsx";
+import FontsList from "./components/FontList.tsx";
 
 const App: React.FC = () => {
     const [file, setFile] = useState<File | null>(null);
@@ -197,7 +195,6 @@ const App: React.FC = () => {
 
 
         setTimeout(() => {
-            console.log(renderingSettingsRef.current.bitRateInMb, audioRef.current.duration)
             setEstimatedFileSize(estimateFileSize(renderingSettingsRef.current.bitRateInMb, audioRef.current.duration))
         }, 222)
 
@@ -206,7 +203,6 @@ const App: React.FC = () => {
 
     const handlePlay = async () => {
         if (!file) {
-            console.log("set file")
             const defaultFile = await fetchDefaultAudioFile();
             audioRef.current.src = defaultAudio;
             setFile(null);
@@ -406,7 +402,6 @@ const App: React.FC = () => {
                         <input type="number" defaultValue={renderingSettingsRef.current.bitRateInMb}
                                onChange={(e) => {
                                    renderingSettingsRef.current.bitRateInMb = parseFloat(e.target.value);
-                                   console.log(estimateFileSize(renderingSettingsRef.current.bitRateInMb, audioRef.current.duration))
                                    setEstimatedFileSize(estimateFileSize(renderingSettingsRef.current.bitRateInMb, audioRef.current.duration))
                                }}/>MB
                     </label>
@@ -494,6 +489,8 @@ const App: React.FC = () => {
                                 or upload a font file:
                                 <input type="file" onChange={handleFontFileUpload} accept=".ttf, .otf"/>
                             </label>
+
+                            <FontsList textSettingsRef={textSettingsRef}></FontsList>
                         </div>
                     )}
                 </div>

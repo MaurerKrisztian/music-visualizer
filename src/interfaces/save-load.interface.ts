@@ -15,7 +15,4 @@ export interface ISaveOptions {
     rendering: IRenderingSettings
     enableVisuals: IEnableVisuals
     simpleBars: ISimpleBarSettings
-    extra: {
-        fontFile?: Blob
-    }
 }

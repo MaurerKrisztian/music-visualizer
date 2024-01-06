@@ -2,7 +2,7 @@ import {setBackgroundImage} from "./backgroundAnimation.ts";
 import {base64ToBlob, base64ToImageUrl, blobToBase64} from "../utils.ts";
 import {ISaveOptions} from "../interfaces/save-load.interface.ts";
 
-export let fontFile = null;
+export const fontFile = null;
 
 export async function generateSaveDataString(saveOptions: ISaveOptions): Promise<string> {
     const options = Object.assign({}, saveOptions);
@@ -10,8 +10,8 @@ export async function generateSaveDataString(saveOptions: ISaveOptions): Promise
         options.background.backgroundImage = await imageUrlToBase64(options.background.backgroundImage);
     }
 
-    if (options.text.selectedFont == "CustomFont") {
-        options.extra.fontFile = await blobToBase64(saveOptions.text.fontFile);
+    if (options.text.selectedFont.startsWith("CustomFont")) {
+        options.text.fontFile = await blobToBase64(saveOptions.text.fontFile) as any;
     }
 
     return JSON.stringify(options, null, 2);
@@ -34,8 +34,8 @@ export async function loadFromString(options: string): Promise<ISaveOptions> {
         setBackgroundImage(parsedOptions.background.backgroundImage)
     }
 
-    if (parsedOptions.extra.fontFile) {
-        fontFile = await base64ToBlob(parsedOptions.extra.fontFile)
+    if (parsedOptions.text.fontFile) {
+        parsedOptions.text.fontFile = await base64ToBlob(parsedOptions.text.fontFile)
     }
 
     return parsedOptions;

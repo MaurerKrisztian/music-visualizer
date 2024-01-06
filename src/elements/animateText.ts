@@ -1,4 +1,4 @@
-import {ITextSettings} from "./saveLoad.ts";
+import {ITextSettings} from "../interfaces/settings.interface.ts";
 
 const animateText = (
     ctx: CanvasRenderingContext2D,

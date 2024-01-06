@@ -1,6 +1,5 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {
-    fontFile,
     generateSaveDataString,
     loadFont,
     loadFromLocalstorage, loadFromString,
@@ -85,7 +84,6 @@ const SaveLoadButtons: React.FC<SaveLoadButtonsProps> = ({settings}) => {
             rendering: renderingSettingsRef.current,
             enableVisuals: enableVisualsSettingsRef.current,
             simpleBars: simpleBarSettingsRef.current,
-            extra: {}
         })
         downloadString(data, "save-preset.canvasbeats")
     }
@@ -99,11 +97,9 @@ const SaveLoadButtons: React.FC<SaveLoadButtonsProps> = ({settings}) => {
         renderingSettingsRef.current = options.rendering;
         simpleBarSettingsRef.current = options.simpleBars
 
-        textSettingsRef.current.fontFile = fontFile
 
-
-        if (fontFile) {
-            loadFont(fontFile, textSettingsRef);
+        if (textSettingsRef.current.fontFile) {
+            loadFont(textSettingsRef.current.fontFile, textSettingsRef);
         }
     }
 
@@ -131,11 +127,11 @@ const SaveLoadButtons: React.FC<SaveLoadButtonsProps> = ({settings}) => {
             renderingSettingsRef.current = options.rendering;
             simpleBarSettingsRef.current = options.simpleBars
 
-            textSettingsRef.current.fontFile = fontFile
+            // textSettingsRef.current.fontFile = fontFile
 
 
-            if (fontFile) {
-                loadFont(fontFile, textSettingsRef);
+            if (textSettingsRef.current.fontFile) {
+                loadFont(textSettingsRef.current.fontFile, textSettingsRef);
             }
         };
         reader.readAsText(file);
