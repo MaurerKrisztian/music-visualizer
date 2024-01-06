@@ -11,7 +11,6 @@ export const setBackgroundImage = (imageUrl: string) => {
 };
 export const drawBackground = (ctx: CanvasRenderingContext2D, canvas, imageUrl, shakeIntensity, analyzer, dataArray) => {
     if (!isBackgroundLoaded) return;
-    shakeIntensity = 1
 
     analyzer.getByteFrequencyData(dataArray);
     const average = dataArray.reduce((a: number, b: number) => a + b) / dataArray.length;
@@ -32,7 +31,7 @@ export const drawBackground = (ctx: CanvasRenderingContext2D, canvas, imageUrl, 
     ctx.restore();
 };
 
-export function manipulateImage(ctx:  CanvasRenderingContext2D, canvas, average) {
+export function manipulateImage(ctx: CanvasRenderingContext2D, canvas, average) {
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
 
@@ -42,7 +41,9 @@ export function manipulateImage(ctx:  CanvasRenderingContext2D, canvas, average)
         // data[i + 1] - green
         // data[i + 2] - blue
         // data[i + 3] - alpha
-        data[i] = data[i] + average; // Increase blue channel based on beat
+        data[i] = data[i] + average / 1.5;
+        // data[i] = data[i+ 1] + average / 1.5;
+        // data[i] = data[i+ 2] + average / 1.5;
         // Ensure the value stays within the 0-255 range
         if (data[i] > 255) {
             data[i] = 255;

@@ -23,6 +23,7 @@ import {
     IRenderingSettings,
     ITextSettings
 } from "./interfaces/settings.interface.ts";
+import SaveLoad from "./components/SaveLoad.tsx";
 
 const App: React.FC = () => {
     const [file, setFile] = useState<File | null>(null);
@@ -160,7 +161,7 @@ const App: React.FC = () => {
         const files = event.target.files;
         if (files && files[0]) {
             textSettingsRef.current.fontFile = files[0];
-             loadFont(files[0], textSettingsRef);
+            loadFont(files[0], textSettingsRef);
         }
     };
 
@@ -201,36 +202,6 @@ const App: React.FC = () => {
         }, 222)
 
     };
-
-
-    const handleSave = () => {
-        saveToLocalstorage({
-            text: textSettingsRef.current,
-            background: backgroundSettingsRef.current,
-            circle: circleAnimationSettingsRef.current,
-            rendering: renderingSettingsRef.current,
-            enableVisuals: enableVisualsSettingsRef.current,
-            simpleBars: simpleBarSettingsRef.current,
-            extra: {}
-        })
-    }
-
-    const handleLoad = async () => {
-        const options = await loadFromLocalstorage();
-        circleAnimationSettingsRef.current = options.circle;
-        backgroundSettingsRef.current = options.background;
-        textSettingsRef.current = options.text;
-        enableVisualsSettingsRef.current = options.enableVisuals;
-        renderingSettingsRef.current = options.rendering;
-        simpleBarSettingsRef.current = options.simpleBars
-
-        textSettingsRef.current.fontFile = fontFile
-
-
-        if (fontFile){
-            loadFont(fontFile, textSettingsRef);
-        }
-    }
 
 
     const handlePlay = async () => {
@@ -283,7 +254,7 @@ const App: React.FC = () => {
         if (!ctx) return;
 
         const animate = () => {
-            ctx.clearRect(0,0, canvasRef.current.width, canvasRef.current.height)
+            ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height)
             if (backgroundSettingsRef.current.backgroundImage !== null && backgroundSettingsRef.current.backgroundImage !== "") {
                 animateBackground(ctx, canvasRef.current, analyserRef.current, dataArrayRef.current, backgroundSettingsRef.current);
             } else {
@@ -392,11 +363,15 @@ const App: React.FC = () => {
 
     return (
         <div className="container">
-            <div style={{textAlign: 'right', margin: '10px'}}>
-
-                <button onClick={handleSave}>Save</button>
-                <button onClick={handleLoad} style={{margin: '5px'}}>Load</button>
-            </div>
+            <SaveLoad settings={{
+                settingsVisibility,
+                simpleBarSettingsRef,
+                circleAnimationSettingsRef,
+                backgroundSettingsRef,
+                textSettingsRef,
+                renderingSettingsRef,
+                enableVisualsSettingsRef
+            }}></SaveLoad>
 
 
             <div className="control-group">
@@ -744,6 +719,13 @@ const App: React.FC = () => {
                             <input type="file" onChange={handleBackgroundImageChange} accept="image/*"/>
                         </label>
                     )}
+
+
+                    <label>
+                        Shake intensity:
+                        <input type="number" defaultValue={backgroundSettingsRef.current.shakeIntensity}
+                               onChange={e => backgroundSettingsRef.current.shakeIntensity = parseFloat(e.target.value)}/>
+                    </label>
 
                 </div>
             )}

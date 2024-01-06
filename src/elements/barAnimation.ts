@@ -40,8 +40,11 @@ export const drawBarVisualization = (
         // Calculate the height of each bar based on the data and the beat multiplier
         const barHeight = settings.beatMultiplier * (settings.numBars ? dataArray[i * Math.floor(bufferLength / numBars)] : dataArray[i]);
 
+
+        ctx.globalAlpha = 1; // todo: add an option for opacity
         // Set the color for each bar
         ctx.fillStyle = settings.barColor;
+
 
         // Calculate the x position for each bar
         const x = startX + i * (settings.barWidth + settings.spacing);
@@ -59,5 +62,8 @@ export const drawBarVisualization = (
                 ctx.fillRect(x, yPosInPixels - barHeight / 2, settings.barWidth, barHeight);
                 break;
         }
+
+
+        ctx.globalAlpha = 1;
     }
 };
