@@ -2,14 +2,14 @@ import React, { useEffect, useState } from 'react';
 
 const FontsList = ({ textSettingsRef }) => {
     const fonts = [
-        'public/fonts/test.ttf',
-        'public/fonts/BROLEH.ttf',
-        'public/fonts/DaughterOfAGlitch-mMBv.ttf',
-        'public/fonts/Athletic-1VmB.ttf',
-        'public/fonts/SandsGreyhoodSeven-D4W0.otf',
-        'public/fonts/MarshalTheDead-ywjxM.ttf',
-        'public/fonts/BambooBrush-gxd05.ttf',
-        'public/fonts/LucySaidOkPersonalUseItalic-OV9ee.ttf',
+        './fonts/test.ttf',
+        './fonts/BROLEH.ttf',
+        './fonts/DaughterOfAGlitch-mMBv.ttf',
+        './fonts/Athletic-1VmB.ttf',
+        './fonts/SandsGreyhoodSeven-D4W0.otf',
+        './fonts/MarshalTheDead-ywjxM.ttf',
+        './fonts/BambooBrush-gxd05.ttf',
+        './fonts/LucySaidOkPersonalUseItalic-OV9ee.ttf',
         // ... other font files
     ];
 
