@@ -3,12 +3,10 @@ import animateText from "./elements/animateText.ts";
 import {animateCircles, ICircle, initializeCircles} from "./elements/circleAnimation.ts";
 import {animateBackground, setBackgroundImage} from "./elements/backgroundAnimation.ts";
 import {
-    IBackgroundSettings,
-    ICircleSettings,
-    IRenderingSettings,
-    ITextSettings,
-    loadOptions,
-    save
+    fontFile,
+    loadFont,
+    loadFromLocalstorage,
+    saveToLocalstorage
 } from "./elements/saveLoad.ts";
 import AudioControls from "./components/AudioControls.tsx";
 import defaultAudio from './assets/music.mp3';
@@ -18,6 +16,13 @@ import {
     MusicVisualizationSettings
 } from "./elements/circleBarVisuaalization.ts";
 import {drawBarVisualization, ISimpleBarSettings} from "./elements/barAnimation.ts";
+import {
+    IBackgroundSettings,
+    ICircleSettings,
+    IEnableVisuals,
+    IRenderingSettings,
+    ITextSettings
+} from "./interfaces/settings.interface.ts";
 
 const App: React.FC = () => {
     const [file, setFile] = useState<File | null>(null);
@@ -40,7 +45,7 @@ const App: React.FC = () => {
     };
 
 
-    const enableVisualsSettingsRef = useRef({
+    const enableVisualsSettingsRef = useRef<IEnableVisuals>({
         simpleBar: true,
         circleBar: false,
         backgroundCircles: true,
@@ -48,16 +53,17 @@ const App: React.FC = () => {
     });
 
     const textSettingsRef = useRef<ITextSettings>({
-        maxSizeMultiplier: 55,
+        maxSizeMultiplier: 222,
         smoothness: 100,
         borderColor: '#000000',
         borderThickness: 1,
-        fontSize: 20,
+        fontSize: 44,
         fontColor: '#000000',
         textInput: 'Sample Text',
         selectedFont: 'Arial',
         x: resolutions.FullHD.width / 2,
         y: resolutions.FullHD.height / 4,
+        fontFile: undefined
     });
 
 
@@ -73,13 +79,13 @@ const App: React.FC = () => {
     const simpleBarSettingsRef = useRef<ISimpleBarSettings>(
         {
             barStyle: "top",
-            spacing: 11,
+            spacing: 15,
             barLength: 1,
-            barWidth: 22,
+            barWidth: 15,
             beatMultiplier: 2,
             barColor: "white",
-            numBars: 11,
-            useFullWidth: true,
+            numBars: 55,
+            useFullWidth: false,
             xPos: 50,
             yPos: 100
         }
@@ -153,11 +159,8 @@ const App: React.FC = () => {
     const handleFontFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         const files = event.target.files;
         if (files && files[0]) {
-            const font = new FontFace('CustomFont', `url(${URL.createObjectURL(files[0])})`);
-            font.load().then((loadedFont) => {
-                document.fonts.add(loadedFont);
-                textSettingsRef.current.selectedFont = 'CustomFont'; // Update ref with the custom font name
-            }).catch(error => console.error('Error loading font:', error));
+            textSettingsRef.current.fontFile = files[0];
+             loadFont(files[0], textSettingsRef);
         }
     };
 
@@ -185,7 +188,6 @@ const App: React.FC = () => {
             audioRef.current.src = audioURL;
             setFile(files[0]);
         } else {
-            console.log("set file")
             const defaultFile = await fetchDefaultAudioFile();
             audioRef.current.src = defaultAudio;
             setFile(null);
@@ -202,19 +204,34 @@ const App: React.FC = () => {
 
 
     const handleSave = () => {
-        save({
+        saveToLocalstorage({
             text: textSettingsRef.current,
             background: backgroundSettingsRef.current,
-            circle: circleAnimationSettingsRef.current
+            circle: circleAnimationSettingsRef.current,
+            rendering: renderingSettingsRef.current,
+            enableVisuals: enableVisualsSettingsRef.current,
+            simpleBars: simpleBarSettingsRef.current,
+            extra: {}
         })
     }
 
-    const handleLoad = () => {
-        const options = loadOptions();
+    const handleLoad = async () => {
+        const options = await loadFromLocalstorage();
         circleAnimationSettingsRef.current = options.circle;
         backgroundSettingsRef.current = options.background;
         textSettingsRef.current = options.text;
+        enableVisualsSettingsRef.current = options.enableVisuals;
+        renderingSettingsRef.current = options.rendering;
+        simpleBarSettingsRef.current = options.simpleBars
+
+        textSettingsRef.current.fontFile = fontFile
+
+
+        if (fontFile){
+            loadFont(fontFile, textSettingsRef);
+        }
     }
+
 
     const handlePlay = async () => {
         if (!file) {
@@ -266,6 +283,7 @@ const App: React.FC = () => {
         if (!ctx) return;
 
         const animate = () => {
+            ctx.clearRect(0,0, canvasRef.current.width, canvasRef.current.height)
             if (backgroundSettingsRef.current.backgroundImage !== null && backgroundSettingsRef.current.backgroundImage !== "") {
                 animateBackground(ctx, canvasRef.current, analyserRef.current, dataArrayRef.current, backgroundSettingsRef.current);
             } else {

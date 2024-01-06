@@ -1,4 +1,4 @@
-import {IBackgroundSettings} from "./saveLoad.ts";
+import {IBackgroundSettings} from "../interfaces/settings.interface.ts";
 
 export const background = new Image();
 export let isBackgroundLoaded = false;
