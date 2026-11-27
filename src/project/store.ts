@@ -13,7 +13,12 @@ export class Store<T> {
     private lastCommit = 0;
     private pendingBase: T | null = null;
 
-    constructor(initial: T, private readonly trackHistory = false) {
+    /**
+     * @param trackHistory keep undo/redo snapshots
+     * @param deep deep-clone on update (nested edits); shallow stores only allow
+     *             top-level assignments but never copy big nested data.
+     */
+    constructor(initial: T, private readonly trackHistory = false, private readonly deep = true) {
         this.state = initial;
     }
 
@@ -49,7 +54,7 @@ export class Store<T> {
     }
 
     update(fn: (draft: T) => void, record = true): void {
-        const draft = structuredClone(this.state);
+        const draft = this.deep ? structuredClone(this.state) : ({ ...(this.state as object) } as T);
         fn(draft);
         this.set(draft, record);
     }

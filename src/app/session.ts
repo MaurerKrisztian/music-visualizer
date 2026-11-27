@@ -45,7 +45,7 @@ export const appStore = new Store<AppState>({
     exporting: false,
     tab: 'look',
     toast: null,
-});
+}, false, false);
 
 export const player = new Player();
 let buffer: AudioBuffer | null = null;
