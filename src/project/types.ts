@@ -1,10 +1,23 @@
 // The project is one plain, serialisable object. The UI edits it, the engine
 // reads it every frame, and save/load just (de)serialises it.
 
-export const BACKGROUND_MODES = ['image', 'stage', 'tunnel', 'warp', 'lasers', 'hex', 'grid', 'nebula', 'plasma', 'kaleido', 'void'] as const;
+export const BACKGROUND_MODES = ['image', 'stage', 'tunnel', 'warp', 'lasers', 'hex', 'grid', 'nebula', 'plasma', 'kaleido', 'gradient', 'void'] as const;
 export type BackgroundMode = (typeof BACKGROUND_MODES)[number];
 
-export const SPECTRUM_STYLES = ['radial-bars', 'radial-wave', 'linear-bars', 'linear-wave', 'terrain', 'oscilloscope', 'circle-scope', 'none'] as const;
+export const SPECTRUM_STYLES = [
+    'radial-bars',
+    'radial-wave',
+    'linear-bars',
+    'center-bars',
+    'blocks',
+    'dots',
+    'line',
+    'linear-wave',
+    'terrain',
+    'oscilloscope',
+    'circle-scope',
+    'none',
+] as const;
 export type SpectrumStyle = (typeof SPECTRUM_STYLES)[number];
 
 export const PARTICLE_MODES = ['none', 'warp', 'embers', 'dust', 'sparks', 'orbit', 'confetti'] as const;

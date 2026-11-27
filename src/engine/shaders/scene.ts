@@ -399,6 +399,23 @@ vec3 background(vec2 uv, vec2 p) {
     return col * (0.55 + 0.9 * uKick + 0.35 * uEnergy) * uBgBright;
 }`,
 
+    gradient: `
+vec3 background(vec2 uv, vec2 p) {
+    vec2 hs = halfSize();
+    float t = uTime * (0.03 + 0.22 * uBgSpeed);
+    float sc = mix(0.55, 1.5, uBgScale);
+    vec2 c1 = vec2(sin(t * 0.7) * 0.55, cos(t * 0.45) * 0.35) * hs * sc;
+    vec2 c2 = vec2(cos(t * 0.55 + 2.0) * 0.6, sin(t * 0.8 + 1.0) * 0.4) * hs * sc;
+    float g1 = exp(-dot(p - c1, p - c1) * 2.2 / (sc * sc));
+    float g2 = exp(-dot(p - c2, p - c2) * 2.2 / (sc * sc));
+    vec3 col = mix(uColB * 0.05, uColB * 0.16, smoothstep(-hs.y, hs.y, p.y + p.x * 0.25));
+    col += uColA * g1 * 0.3 + uColC * g2 * 0.26;
+    col += (fbm3(p * 1.5 + vec2(t * 0.3, -t * 0.2)) - 0.5) * 0.08 * uBgDetail * (uColA + uColC) * 0.5;
+    col *= 1.0 + uBgReact * (0.3 * uKick + 0.15 * uBass);
+    col += (hash21(uv * uRes + fract(uTime * 7.0) * 61.0) - 0.5) / 160.0;
+    return max(col, 0.0) * uBgBright;
+}`,
+
     void: `
 vec3 background(vec2 uv, vec2 p) {
     float r = length(p);

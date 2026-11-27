@@ -56,6 +56,10 @@ const STYLE_INDEX: Record<string, number> = {
     oscilloscope: 4,
     'circle-scope': 5,
     terrain: 6,
+    'center-bars': 7,
+    blocks: 8,
+    dots: 9,
+    line: 10,
 };
 const COLOR_INDEX: Record<string, number> = { palette: 0, reactive: 1, rainbow: 2, mono: 3 };
 const ANIM_INDEX: Record<string, number> = { none: 0, wave: 1, bounce: 2, jitter: 3, flicker: 4, explode: 5 };

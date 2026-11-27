@@ -22,6 +22,7 @@ const BG_LABELS: Record<BackgroundMode, string> = {
     nebula: 'Nebula smoke',
     plasma: 'Liquid plasma',
     kaleido: 'Kaleidoscope fractal',
+    gradient: 'Soft gradient',
     void: 'Minimal void',
 };
 
@@ -29,6 +30,10 @@ const SPEC_LABELS: Record<SpectrumStyle, string> = {
     'radial-bars': 'Radial bars',
     'radial-wave': 'Radial layered wave',
     'linear-bars': 'Bars',
+    'center-bars': 'Centre bars (audiogram)',
+    blocks: 'LED meter',
+    dots: 'Dot matrix',
+    line: 'Thin line',
     'linear-wave': 'Mountain wave',
     oscilloscope: 'Oscilloscope',
     'circle-scope': 'Circular scope',
@@ -80,25 +85,33 @@ export function LookPanel() {
                     🎲 Surprise me
                 </button>
             </div>
-            <div className="preset-grid">
-                {PRESETS.map((p) => (
-                    <button
-                        key={p.id}
-                        className={`preset${active === p.id ? ' on' : ''}`}
-                        onClick={() => {
-                            projectStore.set(applyPreset(projectStore.get(), p));
-                            setActive(p.id);
-                            void ensureFont(String(p.patch.text?.font ?? 'Orbitron'));
-                        }}
-                    >
-                        <span className="swatch" style={{ background: `linear-gradient(120deg, ${p.swatch[0]}, ${p.swatch[1]} 55%, ${p.swatch[2]})` }}>
-                            {presetThumb(p.id) && <img src={presetThumb(p.id)} alt="" loading="lazy" />}
-                        </span>
-                        <span className="preset-name">{p.name}</span>
-                        <span className="preset-tags">{p.tags}</span>
-                    </button>
-                ))}
-            </div>
+            {[
+                { title: 'Full effects', list: PRESETS.filter((p) => p.group !== 'simple') },
+                { title: 'Simple', list: PRESETS.filter((p) => p.group === 'simple') },
+            ].map(({ title, list }) => (
+                <div key={title}>
+                    <div className="preset-group">{title}</div>
+                    <div className="preset-grid">
+                        {list.map((p) => (
+                            <button
+                                key={p.id}
+                                className={`preset${active === p.id ? ' on' : ''}`}
+                                onClick={() => {
+                                    projectStore.set(applyPreset(projectStore.get(), p));
+                                    setActive(p.id);
+                                    void ensureFont(String(p.patch.text?.font ?? 'Orbitron'));
+                                }}
+                            >
+                                <span className="swatch" style={{ background: `linear-gradient(120deg, ${p.swatch[0]}, ${p.swatch[1]} 55%, ${p.swatch[2]})` }}>
+                                    {presetThumb(p.id) && <img src={presetThumb(p.id)} alt="" loading="lazy" />}
+                                </span>
+                                <span className="preset-name">{p.name}</span>
+                                <span className="preset-tags">{p.tags}</span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            ))}
         </div>
     );
 }
@@ -342,7 +355,9 @@ export function ElementsPanel() {
     const pmode = useProject((p) => p.particles.mode);
     const radial = style.startsWith('radial') || style === 'circle-scope';
     const layered = style === 'radial-wave' || style === 'linear-wave';
-    const bars = style === 'radial-bars' || style === 'linear-bars';
+    const bars = style === 'radial-bars' || style === 'linear-bars' || style === 'center-bars' || style === 'blocks' || style === 'dots';
+    const peaks = style === 'radial-bars' || style === 'linear-bars' || style === 'blocks' || style === 'dots';
+    const segmented = style === 'blocks' || style === 'dots';
     return (
         <div className="panel">
             <Section title="Spectrum">
@@ -360,9 +375,9 @@ export function ElementsPanel() {
                             </>
                         )}
                         <Slider label="Height" path="spectrum.height" min={0.02} max={0.45} step={0.005} />
-                        <Slider label="Thickness" path="spectrum.thickness" min={0} max={0.02} step={0.0005} digits={4} />
+                        {!segmented && <Slider label="Thickness" path="spectrum.thickness" min={0} max={0.02} step={0.0005} digits={4} />}
                         {bars && <Slider label="Gap" path="spectrum.gap" min={0} max={0.9} />}
-                        {bars && <Toggle label="Peak caps" path="spectrum.peaks" hint="Small caps that hold at the peak and fall slowly" />}
+                        {peaks && <Toggle label="Peak caps" path="spectrum.peaks" hint="Small caps that hold at the peak and fall slowly" />}
                         {layered && <Slider label="Layers" path="spectrum.layers" min={1} max={8} step={1} />}
                         <Toggle label="Mirror" path="spectrum.mirror" />
                         {radial && <Slider label="Rotation" path="spectrum.rotate" min={-180} max={180} step={1} unit="°" />}

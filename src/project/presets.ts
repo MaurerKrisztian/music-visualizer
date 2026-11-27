@@ -11,8 +11,36 @@ export interface Preset {
     name: string;
     tags: string;
     swatch: [string, string, string];
+    /** shown under its own heading in the gallery */
+    group?: 'simple';
     patch: DeepPartial<Project>;
 }
+
+/** Calm post-processing for the simple looks: no shake, glitch or flashes. */
+const CLEAN_FX: DeepPartial<Project['fx']> = {
+    bloom: 0.3,
+    flare: 0,
+    shake: 0,
+    zoomPunch: 0.08,
+    chromatic: 0,
+    glitch: 0,
+    shockwave: 0,
+    flash: 0,
+    strobe: 0,
+    trails: 0,
+    vignette: 0.35,
+    grain: 0.03,
+    scanlines: 0,
+    letterbox: 0,
+    dynamics: 0.25,
+    buildBoost: 0.15,
+    cuts: 0,
+    drift: 0,
+    zoomBlur: 0,
+    dreamy: 0,
+};
+const CLEAN_TEXT: DeepPartial<Project['text']> = { glitch: 0, glow: 0.2, pulse: 0.1, anim: 'none', stroke: 0 };
+const NO_OVERLAYS: DeepPartial<Project['overlays']> = { lasers: 0, smoke: 0, fire: 0, rays: 0, lightning: 0, crowd: 0 };
 
 export const PRESETS: Preset[] = [
     {
@@ -210,7 +238,8 @@ export const PRESETS: Preset[] = [
     {
         id: 'minimal',
         name: 'Minimal Mono',
-        tags: 'any genre · clean',
+        tags: 'simple · mirrored bars',
+        group: 'simple',
         swatch: ['#ffffff', '#9e9e9e', '#ffffff'],
         patch: {
             palette: { a: '#ffffff', b: '#8a8a8a', c: '#ffffff', hueSpeed: 0, dropHueShift: 0 },
@@ -221,6 +250,93 @@ export const PRESETS: Preset[] = [
             particles: { mode: 'none' },
             text: { font: 'Anton', y: 0.4, size: 0.08, spacing: 0.05, glitch: 0, glow: 0.2, anim: 'none' },
             fx: { bloom: 0.35, shake: 0.15, zoomPunch: 0.2, chromatic: 0, glitch: 0, shockwave: 0, flash: 0.1, trails: 0, grain: 0.05, vignette: 0.4, zoomBlur: 0 },
+        },
+    },
+
+    // ---- simple looks: one clean visual, calm effects, any genre ----
+    {
+        id: 'clean-bars',
+        name: 'Clean Bars',
+        tags: 'simple · cover art + bars',
+        group: 'simple',
+        swatch: ['#4fc3f7', '#ffffff', '#b388ff'],
+        patch: {
+            palette: { a: '#4fc3f7', b: '#e3f2fd', c: '#b388ff', hueSpeed: 0, dropHueShift: 0 },
+            background: { mode: 'gradient', speed: 0.3, scale: 0.6, detail: 0.3, brightness: 0.9, react: 0.4 },
+            overlays: NO_OVERLAYS,
+            spectrum: { style: 'linear-bars', bars: 64, x: 0, y: -0.8, width: 0.78, height: 0.19, gap: 0.35, mirror: true, peaks: true, colorMode: 'palette', kickScale: 0.2, echo: 0 },
+            center: { enabled: true, shape: 'square', x: 0, y: 0.22, radius: 0.15, ring: 0.12, ringGlow: 0.2, shockRings: 0, wobble: 0, kickScale: 0.2, spin: 0 },
+            particles: { mode: 'dust', count: 90, size: 0.3, speed: 0.25, kickBoost: 0.2, opacity: 0.45, dropBurst: false },
+            text: { ...CLEAN_TEXT, font: 'Bebas Neue', y: -0.34, size: 0.05, spacing: 0.08 },
+            fx: CLEAN_FX,
+        },
+    },
+    {
+        id: 'audiogram',
+        name: 'Audiogram',
+        tags: 'simple · centre bars',
+        group: 'simple',
+        swatch: ['#18ffff', '#2979ff', '#d500f9'],
+        patch: {
+            palette: { a: '#18ffff', b: '#2979ff', c: '#d500f9', hueSpeed: 0, dropHueShift: 0 },
+            background: { mode: 'gradient', speed: 0.25, scale: 0.7, detail: 0.2, brightness: 0.85, react: 0.35 },
+            overlays: NO_OVERLAYS,
+            spectrum: { style: 'center-bars', bars: 56, x: 0, y: -0.12, width: 0.8, height: 0.32, gap: 0.45, mirror: true, colorMode: 'palette', kickScale: 0.2, echo: 0 },
+            center: { enabled: false },
+            particles: { mode: 'none' },
+            text: { ...CLEAN_TEXT, font: 'Bebas Neue', y: 0.56, size: 0.07, spacing: 0.06 },
+            fx: CLEAN_FX,
+        },
+    },
+    {
+        id: 'led',
+        name: 'Hi-Fi LED',
+        tags: 'simple · LED equalizer',
+        group: 'simple',
+        swatch: ['#00e676', '#ffea00', '#ff1744'],
+        patch: {
+            palette: { a: '#00e676', b: '#ffea00', c: '#ff1744', hueSpeed: 0, dropHueShift: 0 },
+            background: { mode: 'void', brightness: 0.45, detail: 0.2, react: 0.3 },
+            overlays: NO_OVERLAYS,
+            spectrum: { style: 'blocks', bars: 28, x: 0, y: -0.62, width: 0.74, height: 0.3, gap: 0.22, mirror: false, peaks: true, colorMode: 'palette', kickScale: 0, echo: 0, release: 0.12 },
+            center: { enabled: false },
+            particles: { mode: 'none' },
+            text: { ...CLEAN_TEXT, font: 'Michroma', y: 0.62, size: 0.045, spacing: 0.18 },
+            fx: { ...CLEAN_FX, bloom: 0.4 },
+        },
+    },
+    {
+        id: 'dot-matrix',
+        name: 'Dot Matrix',
+        tags: 'simple · dots',
+        group: 'simple',
+        swatch: ['#ff6e40', '#ff4081', '#ffd740'],
+        patch: {
+            palette: { a: '#ff6e40', b: '#ff4081', c: '#ffd740', hueSpeed: 0, dropHueShift: 0 },
+            background: { mode: 'gradient', speed: 0.2, scale: 0.8, detail: 0.25, brightness: 0.75, react: 0.35 },
+            overlays: NO_OVERLAYS,
+            spectrum: { style: 'dots', bars: 40, x: 0, y: -0.05, width: 0.8, height: 0.42, gap: 0.3, mirror: true, peaks: false, colorMode: 'palette', kickScale: 0.15, echo: 0 },
+            center: { enabled: false },
+            particles: { mode: 'none' },
+            text: { ...CLEAN_TEXT, font: 'Anton', y: 0.72, size: 0.055, spacing: 0.08 },
+            fx: CLEAN_FX,
+        },
+    },
+    {
+        id: 'thin-line',
+        name: 'Thin Line',
+        tags: 'simple · line spectrum',
+        group: 'simple',
+        swatch: ['#ffffff', '#64ffda', '#82b1ff'],
+        patch: {
+            palette: { a: '#64ffda', b: '#ffffff', c: '#82b1ff', hueSpeed: 0, dropHueShift: 0 },
+            background: { mode: 'void', brightness: 0.55, detail: 0.2, react: 0.3 },
+            overlays: NO_OVERLAYS,
+            spectrum: { style: 'line', bars: 96, x: 0, y: -0.4, width: 0.86, height: 0.3, thickness: 0.003, mirror: false, colorMode: 'palette', kickScale: 0.15, echo: 0 },
+            center: { enabled: false },
+            particles: { mode: 'none' },
+            text: { ...CLEAN_TEXT, font: 'Michroma', y: 0.5, size: 0.04, spacing: 0.2 },
+            fx: { ...CLEAN_FX, bloom: 0.45 },
         },
     },
 ];
