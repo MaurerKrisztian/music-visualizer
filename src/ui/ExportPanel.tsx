@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { engineImages, preview } from '../app/preview';
 import { appStore, getAudioBuffer, player, reactOptions } from '../app/session';
-import { downloadBlob, estimateBytes, safeFileName, supportsWebCodecs, targetBitrate, type ExportProgress, type ExportResult } from '../export/settings';
+import { estimateBytes, isFramed, safeFileName, saveFile, supportsWebCodecs, targetBitrate, type ExportProgress, type ExportResult } from '../export/settings';
 import { recordRealtime, supportsRealtime } from '../export/realtime';
 import { ensureFont, fontsVersion, fontWeight } from '../project/fonts';
 import { projectStore, setProject, useProject, useStore } from '../project/store';
@@ -16,7 +16,9 @@ interface Job {
     abort: AbortController;
     result: ExportResult | null;
     error: string | null;
-    url: string | null;
+    blob: Blob | null;
+    saved: boolean;
+    saveMsg: string | null;
 }
 
 type SavePicker = (opts: unknown) => Promise<{ createWritable: () => Promise<FileSystemWritableFileStream> }>;
@@ -30,9 +32,10 @@ export function ExportPanel() {
     const [toDisk, setToDisk] = useState(false);
     const [job, setJob] = useState<Job | null>(null);
     const [snapBusy, setSnapBusy] = useState(false);
+    const [snapMsg, setSnapMsg] = useState<string | null>(null);
     const pvCanvas = useRef<HTMLCanvasElement>(null);
     const webcodecs = supportsWebCodecs();
-    const canPick = typeof (window as unknown as { showSaveFilePicker?: SavePicker }).showSaveFilePicker === 'function';
+    const canPick = typeof (window as unknown as { showSaveFilePicker?: SavePicker }).showSaveFilePicker === 'function' && !isFramed();
 
     const res = RESOLUTIONS[ex.resolution] ?? RESOLUTIONS['1080p'];
     const start = Math.max(0, Math.min(ex.rangeStart ?? 0, duration));
@@ -44,7 +47,10 @@ export function ExportPanel() {
     const baseName = safeFileName([meta.artist, meta.title].filter(Boolean).join(' - ') || 'canvasbeats');
     const fileName = `${baseName}${ex.resolution === 'short' ? ' (short)' : ''}.${ex.format}`;
 
-    useEffect(() => () => void (job?.url && URL.revokeObjectURL(job.url)), [job?.url]);
+    const offerSave = async (blob: Blob, name: string) => {
+        const out = await saveFile(blob, name);
+        setJob((j) => (j ? { ...j, saved: j.saved || out.ok, saveMsg: out.ok ? `Saved ${name}` : out.message } : j));
+    };
 
     const setRange = (a: number | null, b: number | null) =>
         projectStore.update((p) => {
@@ -85,7 +91,7 @@ export function ExportPanel() {
             }
         }
         const abort = new AbortController();
-        setJob({ progress: null, realtime: null, abort, result: null, error: null, url: null });
+        setJob({ progress: null, realtime: null, abort, result: null, error: null, blob: null, saved: false, saveMsg: null });
         player.pause();
         appStore.update((s) => {
             s.playing = false;
@@ -113,17 +119,13 @@ export function ExportPanel() {
                     (progress) => setJob((j) => (j ? { ...j, progress } : j)),
                     abort.signal,
                 );
-                let url: string | null = null;
-                if (result.blob) {
-                    downloadBlob(result.blob, result.fileName);
-                    url = URL.createObjectURL(result.blob);
-                }
-                setJob((j) => (j ? { ...j, result, url } : j));
+                setJob((j) => (j ? { ...j, result, blob: result.blob, saved: result.savedToDisk, saveMsg: result.savedToDisk ? `Saved ${result.fileName}` : null } : j));
+                if (result.blob) await offerSave(result.blob, result.fileName);
             } else {
                 const blob = await recordRealtime({ width: res.w, height: res.h, fps: ex.fps, start, end, bitrate }, (p) => setJob((j) => (j ? { ...j, realtime: p } : j)), abort.signal);
                 const name = fileName.replace(/\.(mp4|webm)$/, blob.type.includes('mp4') ? '.mp4' : '.webm');
-                downloadBlob(blob, name);
-                setJob((j) => (j ? { ...j, url: URL.createObjectURL(blob), result: { blob, fileName: name, savedToDisk: false, videoCodec: 'vp9', audioCodec: 'opus', bytes: blob.size, seconds: len } } : j));
+                setJob((j) => (j ? { ...j, blob, result: { blob, fileName: name, savedToDisk: false, videoCodec: blob.type.includes('mp4') ? 'avc' : 'vp9', audioCodec: blob.type.includes('mp4') ? 'aac' : 'opus', bytes: blob.size, seconds: len } } : j));
+                await offerSave(blob, name);
             }
         } catch (err) {
             const msg = err instanceof Error && err.message === 'Export cancelled' ? 'Export cancelled.' : err instanceof Error ? err.message : String(err);
@@ -140,6 +142,7 @@ export function ExportPanel() {
         const st = appStore.get();
         if (!buffer || !st.env || !st.interp) return;
         setSnapBusy(true);
+        setSnapMsg(null);
         try {
             const project = projectStore.get();
             await ensureFont(project.text.font);
@@ -151,9 +154,11 @@ export function ExportPanel() {
                 res.w,
                 res.h,
             );
-            downloadBlob(blob, `${baseName} ${formatTime(player.currentTime).replace(':', '-')}.png`);
+            const name = `${baseName} ${formatTime(player.currentTime).replace(':', '-')}.png`;
+            const out = await saveFile(blob, name);
+            setSnapMsg(out.ok ? `Saved ${name}` : out.message);
         } catch (err) {
-            window.alert(err instanceof Error ? err.message : String(err));
+            setSnapMsg(err instanceof Error ? err.message : String(err));
         } finally {
             setSnapBusy(false);
         }
@@ -248,6 +253,7 @@ export function ExportPanel() {
                 <button className="btn" disabled={!ready || running || snapBusy} onClick={() => void snapshot()}>
                     {snapBusy ? 'Rendering…' : 'Save frame as PNG'}
                 </button>
+                {snapMsg && <p className="hint">{snapMsg}</p>}
             </Section>
 
             {job && (
@@ -284,13 +290,14 @@ export function ExportPanel() {
                         {job.result && (
                             <>
                                 <p className="ok">
-                                    {job.result.savedToDisk ? 'Saved to disk' : 'Downloaded'} <b>{job.result.fileName}</b> · {formatBytes(job.result.bytes)} · {job.result.videoCodec.toUpperCase()} + {job.result.audioCodec.toUpperCase()} · rendered in {formatTime(job.result.seconds)}
+                                    Rendered <b>{job.result.fileName}</b> · {formatBytes(job.result.bytes)} · {job.result.videoCodec.toUpperCase()} + {job.result.audioCodec.toUpperCase()} · in {formatTime(job.result.seconds)}
                                 </p>
+                                {job.saveMsg && <p className={job.saved ? 'ok' : 'err'}>{job.saveMsg}</p>}
                                 <div className="row">
-                                    {job.url && (
-                                        <a className="btn primary" href={job.url} download={job.result.fileName}>
-                                            Download again
-                                        </a>
+                                    {job.blob && (
+                                        <button className="btn primary" onClick={() => void offerSave(job.blob!, job.result!.fileName)}>
+                                            {job.saved ? 'Save again' : 'Save video'}
+                                        </button>
                                     )}
                                     <button className="btn ghost" onClick={() => setJob(null)}>
                                         Close

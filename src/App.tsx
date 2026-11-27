@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { appStore, loadAudio, loadLyricsFile, player, restoreSession, seek, startAutosave, toast, togglePlay } from './app/session';
-import { safeFileName } from './export/settings';
+import { isArtifactView, safeFileName, saveFile } from './export/settings';
 import { assets } from './project/assets';
 import { ensureFont } from './project/fonts';
 import { parseProjectFile, serializeProject } from './project/projectFile';
@@ -68,13 +68,11 @@ async function saveProjectFile() {
     const p = projectStore.get();
     const json = await serializeProject(p);
     const name = safeFileName([p.meta.artist, p.meta.title].filter(Boolean).join(' - ') || 'project');
-    const blob = new Blob([json], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `${name}.canvasbeats`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
-    toast('Project saved.');
+    // artifact viewers only accept common extensions, so use .json there
+    const fileName = isArtifactView() ? `${name}.canvasbeats.json` : `${name}.canvasbeats`;
+    const out = await saveFile(new Blob([json], { type: 'application/json' }), fileName);
+    if (out.ok) toast('Project saved.');
+    else if (!out.declined) toast(out.message, 'error');
 }
 
 export default function App() {
