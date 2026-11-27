@@ -242,6 +242,120 @@ vec4 circleScope(vec2 p) {
 }
 
 
+// Bar index and position inside its cell for the linear bar styles.
+float barCell(float x, out float fx, out float nb) {
+    nb = uSpMirror > 0.5 ? uSpecBars * 2.0 : uSpecBars;
+    float fi = x * nb;
+    float cellI = floor(fi);
+    fx = fi - cellI;
+    return uSpMirror > 0.5 ? (cellI < uSpecBars ? uSpecBars - 1.0 - cellI : cellI - uSpecBars) : cellI;
+}
+
+// Pill-shaped bars that grow up and down from a centre line (audiogram look).
+vec4 centerBars(vec2 p) {
+    float x, bx; vec2 q;
+    float W = linearCoords(p, x, bx, q).x;
+    if (x < 0.0 || x > 1.0) return vec4(0.0);
+    float fx, nb;
+    float idx = barCell(x, fx, nb);
+    float v = specRaw(idx, 0.0);
+    float cw = W / nb;
+    float bw = cw * (1.0 - uSpGap);
+    float rr = bw * 0.5;
+    float h = max(uSpHeight * 0.5 * pow(v, 1.3) + uSpThick * 0.5, rr);
+    float aa = px() * 1.2;
+    float m = smoothstep(aa, -aa, sdRoundBox(vec2((fx - 0.5) * cw, q.y), vec2(bw * 0.5, h), rr));
+    vec3 c = spColor(bx, v) * (0.8 + 0.5 * v);
+    return vec4(c * m, m);
+}
+
+// Shared segment grid for the LED and dot styles: returns the lit state of the
+// cell at q (x = lit, y = peak, z = cell height 0..1) and its local coordinates.
+vec3 meterCell(vec2 q, float W, float x, float H, bool symmetric, bool square, float minLevel, out vec2 local, out vec2 cellSize, out float v) {
+    float fx, nb;
+    float idx = barCell(x, fx, nb);
+    float cw = W / nb;
+    float segH = square ? cw : max(cw * 0.45, 0.004);
+    float y = symmetric ? abs(q.y) : q.y;
+    float nSeg = max(3.0, floor(H / segH));
+    segH = H / nSeg;
+    float si = floor(y / segH);
+    local = vec2((fx - 0.5) * cw, (y / segH - si - 0.5) * segH);
+    cellSize = vec2(cw, segH);
+    v = specRaw(idx, 0.0);
+    float level = max(pow(v, 1.15) * nSeg, minLevel);
+    float lit = step(si + 0.35, level);
+    float peak = 0.0;
+    if (uSpPeaks > 0.5) {
+        float pk = pow(texelFetch(uPeaks, ivec2(int(clamp(idx, 0.0, uSpecBars - 1.0)), 0), 0).r, 1.15) * nSeg;
+        peak = step(0.6, pk) * step(abs(si - floor(pk - 0.35)), 0.5);
+    }
+    return vec3(lit, peak, (si + 0.5) / nSeg);
+}
+
+// Hi-fi equalizer: stacked rectangular LED segments with dim unlit cells.
+vec4 ledBlocks(vec2 p) {
+    float x, bx; vec2 q;
+    float W = linearCoords(p, x, bx, q).x;
+    float H = uSpHeight * 1.3;
+    if (x < 0.0 || x > 1.0 || q.y < 0.0 || q.y > H) return vec4(0.0);
+    vec2 local, cs; float v;
+    vec3 cell = meterCell(q, W, x, H, false, false, 0.0, local, cs, v);
+    float aa = px() * 1.1;
+    vec2 half_ = vec2(cs.x * (1.0 - uSpGap), cs.y * 0.74) * 0.5;
+    float m = smoothstep(aa, -aa, sdRoundBox(local, half_, min(half_.x, half_.y) * 0.3));
+    vec3 c = uSpColor == 0 ? grad(cell.z) : spColor(bx, cell.z);
+    float on = max(cell.x, cell.y);
+    vec3 col = mix(c * 0.07, c * (cell.y > 0.5 && cell.x < 0.5 ? 1.3 : 1.0), on);
+    return vec4(col * m, m * mix(0.3, 1.0, on));
+}
+
+// Dot matrix that grows up and down from the centre line.
+vec4 dotMatrix(vec2 p) {
+    float x, bx; vec2 q;
+    float W = linearCoords(p, x, bx, q).x;
+    float H = uSpHeight * 0.65;
+    if (x < 0.0 || x > 1.0 || abs(q.y) > H) return vec4(0.0);
+    vec2 local, cs; float v;
+    vec3 cell = meterCell(q, W, x, H, true, true, 0.6, local, cs, v);
+    float aa = px() * 1.1;
+    float r = min(cs.x, cs.y) * 0.5 * (1.0 - uSpGap * 0.8);
+    float on = max(cell.x, cell.y);
+    float d = length(local) - r * mix(0.55, 1.0, on);
+    float m = smoothstep(aa, -aa, d);
+    vec3 c = spColor(bx, v) * (0.85 + 0.4 * (1.0 - cell.z));
+    vec3 col = mix(c * 0.08, c, on);
+    return vec4(col * m, m * mix(0.3, 1.0, on));
+}
+
+// A single thin, smooth spectrum line with a faint fill below it.
+float lineY(float x) {
+    float s = uSpMirror > 0.5 ? abs(x - 0.5) * 2.0 : x;
+    float e = smoothstep(0.0, 0.04, x) * smoothstep(1.0, 0.96, x);
+    return uSpHeight * pow(specSmooth(s, 0.0), 1.2) * e;
+}
+
+vec4 specLine(vec2 p) {
+    float x, bx; vec2 q;
+    float W = linearCoords(p, x, bx, q).x;
+    if (x < -0.01 || x > 1.01 || q.y < -0.03 || q.y > uSpHeight + 0.04) return vec4(0.0);
+    const float N = 180.0;
+    float dx = 1.0 / N;
+    float d = 1e9;
+    for (int i = -2; i <= 2; i++) {
+        float x0 = (floor(x * N) + float(i)) * dx;
+        float x1 = x0 + dx;
+        d = min(d, sdSegment(q, vec2((x0 - 0.5) * W, lineY(x0)), vec2((x1 - 0.5) * W, lineY(x1))));
+    }
+    float w = uSpThick * 0.5 + 0.0009;
+    float aa = px();
+    float l = smoothstep(w + aa, w - aa, d) + exp(-d / (w * 6.0)) * 0.25;
+    float y = lineY(clamp(x, 0.0, 1.0));
+    float fill = q.y > 0.0 && q.y < y ? 0.1 * q.y / max(y, 1e-4) : 0.0;
+    vec3 c = spColor(bx, y / max(uSpHeight, 1e-4));
+    return vec4(c * (l + fill), min(1.0, l));
+}
+
 // 3D landscape of the last second of spectrum frames, scrolling away from the viewer.
 vec4 terrain(vec2 p) {
     vec2 hs = halfSize();
@@ -315,6 +429,10 @@ void main() {
     else if (uStyle == 4) c = oscilloscope(p);
     else if (uStyle == 5) c = circleScope(p);
     else if (uStyle == 6) { outColor = terrain(p) * uSpOpacity; return; }
+    else if (uStyle == 7) c = centerBars(p);
+    else if (uStyle == 8) c = ledBlocks(p);
+    else if (uStyle == 9) c = dotMatrix(p);
+    else if (uStyle == 10) c = specLine(p);
     if (uSpEcho > 0.001 && (uStyle == 0 || uStyle == 1 || uStyle == 5)) c.rgb += echoRings(p);
     outColor = vec4(c.rgb * uSpOpacity, c.a * uSpOpacity);
 }`;
