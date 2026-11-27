@@ -37,6 +37,8 @@ Every frame is a pure function of **(project settings, audio features at time t)
 - [x] Manual drop editing (double-click the timeline); kick-roll build-ups no longer create false early drops.
 - [x] Drop scene: a second background that cuts in on drops (Euphoric preset: nebula breakdowns, neon tunnel drops).
 - [x] Falling peak caps on bar spectrums.
+- [x] Festival stage background (truss, moving heads, LED wall), vinyl and square-cover centre shapes, anamorphic lens flares, fullscreen watch mode.
+- [x] Runs as a Claude artifact (saves through the viewer's downloads capability; MP4 falls back to Opus audio when WASM is blocked).
 
 ## Next
 
@@ -44,5 +46,5 @@ Every frame is a pure function of **(project settings, audio features at time t)
 - [ ] Per-section spectrum/particle styles (beyond background and colours).
 - [ ] Batch export (16:9 and 9:16 in one go).
 - [ ] Render the export in a worker with OffscreenCanvas so the UI stays responsive.
-- [ ] More backgrounds (stage with truss lights, 3D city, VHS tape).
+- [ ] More backgrounds (3D city, VHS tape).
 - [ ] Tune kick/drop detection on a set of real hardstyle, rawstyle and uptempo tracks (so far tested on synthetic tracks and the demo).

@@ -8,14 +8,14 @@ A browser music visualizer built for **hardstyle, rawstyle, hardcore, uptempo an
 
 - **Track analysis** (Web Worker): kick detection, BPM and beat grid, downbeats, build-ups and drops, plus an intensity curve. Double-click the timeline to add or remove a drop by hand.
 - **WebGL2 engine** with:
-  - 10 backgrounds (cover art, neon tunnel, hyperspace, lasers, hex shockwave, retro grid, nebula, plasma, kaleidoscope, void)
+  - 11 backgrounds (cover art, festival stage, neon tunnel, hyperspace, lasers, hex shockwave, retro grid, nebula, plasma, kaleidoscope, void)
   - 6 spectrum styles
-  - logo / cover circle with shock rings
+  - centre logo as a circle, a square cover or a spinning vinyl record (it back-spins on drops), with shock rings
   - particles
   - lasers, fire with pyro jets, smoke, and festival crowd silhouettes that jump on the kicks
-  - post effects: bloom, shake, zoom punch, beat-synced camera cuts, shockwave ripple, glitch, chromatic aberration, strobe, trails and film grain
+  - post effects: bloom, anamorphic lens flares, shake, zoom punch, beat-synced camera cuts, shockwave ripple, glitch, chromatic aberration, strobe, trails and film grain
 - **Section-aware dynamics**: calm breakdowns, tension that builds into the drop, and maximum impact on the drop. An optional **drop scene** switches the background (and palette) the moment the kicks come back.
-- **12 genre presets** (Euphoric, Rawstyle, Uptempo Terror, Frenchcore, Gabber, Mainstage Pyro and more). The gallery thumbnails are rendered from your own track.
+- **13 genre presets** (Euphoric, Rawstyle, Uptempo Terror, Frenchcore, Gabber, Mainstage Pyro, Vinyl Spin and more). The gallery thumbnails are rendered from your own track.
 - **Branding**: intro title card, artist/title text with 20+ fonts (or upload your own), lyrics/subtitles from .lrc/.srt files, a corner watermark logo, and a separate drop palette.
 - **Frame-accurate export**:
   - formats: MP4 (H.264 + AAC) or WebM (VP9 + Opus)
@@ -24,7 +24,7 @@ A browser music visualizer built for **hardstyle, rawstyle, hardcore, uptempo an
   - optional streaming straight to disk
   - full-resolution PNG snapshot for thumbnails
   - falls back to real-time recording when WebCodecs is missing
-- Autosave, undo/redo, and `.canvasbeats` project files with embedded images and fonts. Drag and drop for audio, images, fonts and projects.
+- Fullscreen watch mode (F), autosave, undo/redo, and `.canvasbeats` project files with embedded images and fonts. Drag and drop for audio, images, fonts and projects.
 
 ## Develop
 

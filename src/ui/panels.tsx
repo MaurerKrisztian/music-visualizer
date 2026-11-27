@@ -13,6 +13,7 @@ import { IconMusic } from './icons';
 
 const BG_LABELS: Record<BackgroundMode, string> = {
     image: 'Image / cover art',
+    stage: 'Festival stage',
     tunnel: 'Neon tunnel',
     warp: 'Hyperspace warp',
     lasers: 'Laser show',
@@ -391,7 +392,16 @@ export function ElementsPanel() {
             <Section title="Logo / centre" aside={<CenterSwitch />}>
                 {centerOn ? (
                     <>
-                        <ImageSlot label="Logo" path="center.imageId" hint="Your logo or cover art inside the circle" />
+                        <Segmented
+                            label="Shape"
+                            path="center.shape"
+                            options={[
+                                { value: 'circle', label: 'Circle' },
+                                { value: 'square', label: 'Cover' },
+                                { value: 'vinyl', label: 'Vinyl' },
+                            ]}
+                        />
+                        <ImageSlot label="Logo / cover" path="center.imageId" hint="Your logo or cover art. On the vinyl it becomes the record label." />
                         <Slider label="Size" path="center.radius" min={0.04} max={0.4} step={0.005} />
                         <Slider label="Kick pulse" path="center.kickScale" min={0} max={1.5} />
                         <Slider label="Ring" path="center.ring" />
@@ -649,6 +659,7 @@ export function FxPanel() {
                 <Slider label="Bloom" path="fx.bloom" min={0} max={1.5} />
                 <Slider label="Bloom threshold" path="fx.bloomThreshold" min={0} max={1.5} />
                 <Slider label="Bloom radius" path="fx.bloomRadius" />
+                <Slider label="Lens flares" path="fx.flare" hint="Horizontal anamorphic streaks on bright lights, like a festival camera" />
                 <Slider label="Exposure" path="fx.exposure" min={0.3} max={2} />
                 <Slider label="Contrast" path="fx.contrast" min={0.5} max={1.6} />
                 <Slider label="Saturation" path="fx.saturation" min={0} max={2} />

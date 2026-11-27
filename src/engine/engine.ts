@@ -4,12 +4,12 @@
 
 import type { Features } from '../audio/features';
 import { WAVE_POINTS } from '../audio/features';
-import type { BackgroundMode, Project } from '../project/types';
+import { BACKGROUND_MODES, type BackgroundMode, type Project } from '../project/types';
 import { hash1, hexToRgb, noise1, rotateHue, type RGB } from './color';
 import { createDataTexture, createFullscreenVao, FULLSCREEN_VS, pickHdrFormat, Program, RenderTarget, type GL } from './gl';
 import { MAX_PARTICLES, ParticleSystem, PARTICLE_STRIDE } from './particles';
 import { CENTER_SHADER, CROWD_SHADER, IMAGE_SHADER, PARTICLE_FS, PARTICLE_VS, PROGRESS_SHADER, SPECTRUM_SHADER, TEXT_SHADER } from './shaders/layers';
-import { COPY_SHADER, DOWN_SHADER, FEEDBACK_SHADER, FINAL_SHADER, UP_SHADER } from './shaders/post';
+import { COPY_SHADER, DOWN_SHADER, FEEDBACK_SHADER, FINAL_SHADER, STREAK_SHADER, UP_SHADER } from './shaders/post';
 import { backgroundShader, OVERLAY_SHADER } from './shaders/scene';
 import { TextRenderer } from './text';
 import { activeCue } from '../project/lyrics';
@@ -72,6 +72,8 @@ export class Engine {
     private fxA: RenderTarget;
     private fxB: RenderTarget;
     private readonly bg2: RenderTarget;
+    private readonly flareA: RenderTarget;
+    private readonly flareB: RenderTarget;
     private readonly bloom: RenderTarget[] = [];
     private readonly bgPrograms = new Map<BackgroundMode, Program>();
     private readonly progs: Record<string, Program> = {};
@@ -88,6 +90,7 @@ export class Engine {
     private readonly images = new Map<string, CachedImage>();
     private readonly blackTex: WebGLTexture;
     private fbValid = false;
+    private flareOut: RenderTarget | null = null;
     private lost = false;
 
     constructor(readonly canvas: HTMLCanvasElement | OffscreenCanvas, private readonly opts: EngineOptions = {}) {
@@ -116,6 +119,8 @@ export class Engine {
         this.fxA = new RenderTarget(gl, fmt, 4, 4);
         this.fxB = new RenderTarget(gl, fmt, 4, 4);
         this.bg2 = new RenderTarget(gl, fmt, 4, 4);
+        this.flareA = new RenderTarget(gl, fmt, 4, 4);
+        this.flareB = new RenderTarget(gl, fmt, 4, 4);
         for (let i = 0; i < BLOOM_LEVELS; i++) this.bloom.push(new RenderTarget(gl, fmt, 4, 4));
 
         const mk = (name: string, fs: string, vs = FULLSCREEN_VS) => (this.progs[name] = new Program(gl, vs, fs, name));
@@ -131,6 +136,7 @@ export class Engine {
         mk('down', DOWN_SHADER);
         mk('up', UP_SHADER);
         mk('final', FINAL_SHADER);
+        mk('streak', STREAK_SHADER);
         mk('particles', PARTICLE_FS, PARTICLE_VS);
 
         this.specTex = createDataTexture(gl, 64, SPEC_HIST, gl.NEAREST);
@@ -180,6 +186,8 @@ export class Engine {
         this.fxA.resize(w, h);
         this.fxB.resize(w, h);
         this.bg2.resize(w, h);
+        this.flareA.resize(Math.max(1, Math.floor(w / 4)), Math.max(1, Math.floor(h / 2)));
+        this.flareB.resize(Math.max(1, Math.floor(w / 4)), Math.max(1, Math.floor(h / 2)));
         let bw = w;
         let bh = h;
         for (const b of this.bloom) {
@@ -207,7 +215,7 @@ export class Engine {
 
     /** Compiles every background variant up front (avoids hitches when switching). */
     warmup(): void {
-        for (const m of ['image', 'tunnel', 'warp', 'lasers', 'hex', 'grid', 'nebula', 'plasma', 'kaleido', 'void'] as BackgroundMode[]) this.bgProgram(m);
+        for (const m of BACKGROUND_MODES) this.bgProgram(m);
     }
 
     private imageTexture(img: ImageSource | null): CachedImage | null {
@@ -496,7 +504,10 @@ export class Engine {
                 .f('uRing', ct.ring)
                 .f('uRingGlow', ct.ringGlow)
                 .f('uCtrSpin', ct.spin * 0.6 * t + Math.sin(t * 2.1) * 0.03 * kick)
-                .f('uShockRings', ct.shockRings * dyn);
+                .f('uShockRings', ct.shockRings * dyn)
+                .f('uShape', ct.shape === 'vinyl' ? 2 : ct.shape === 'square' ? 1 : 0)
+                // 33 1/3 rpm, plus a quick back-spin "scratch" on every drop
+                .f('uVinylSpin', -(t * Math.PI * 2 * 0.5556 + ct.spin * 0.6 * t) + 2.6 * f.drop * Math.exp(-f.dropAge * 2));
             this.draw();
         }
 
@@ -601,6 +612,28 @@ export class Engine {
             this.draw();
             src = dst;
         }
+        // anamorphic streaks from the bright pass (quarter res, squashed vertically)
+        const flareAmt = fx.flare * (0.7 + 0.6 * kick + 0.4 * f.drop);
+        if (fx.flare > 0.001) {
+            const sk = this.progs.streak;
+            let fsrc: RenderTarget = this.bloom[0];
+            let fdst = this.flareA;
+            const steps = [1, 3, 9, 27];
+            for (let i = 0; i < steps.length; i++) {
+                fdst.bind();
+                sk.use()
+                    .tex('uTex', fsrc.texture)
+                    .v2('uTexel', 1 / fsrc.width, 1 / fsrc.height)
+                    .f('uStep', steps[i] * (fdst.width / 480))
+                    .f('uGain', i === 0 ? 1.6 : 1)
+                    .f('uKnee', i === 0 ? 0.35 : 0);
+                this.draw();
+                fsrc = fdst;
+                fdst = fdst === this.flareA ? this.flareB : this.flareA;
+            }
+            this.flareOut = fsrc;
+        }
+
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.ONE, gl.ONE);
         const up = this.progs.up;
@@ -650,6 +683,9 @@ export class Engine {
             .tex('uScene', this.scene.texture)
             .tex('uBloom', this.bloom[0].texture)
             .f('uBloomAmt', fx.bloom * (0.85 + 0.45 * kick + 0.3 * dropBurst))
+            .tex('uFlare', (this.flareOut ?? this.flareA).texture)
+            .f('uFlareAmt', fx.flare > 0.001 ? flareAmt * 2.4 : 0)
+            .v3('uFlareTint', [0.35 + 0.4 * palette[0][0], 0.45 + 0.4 * palette[0][1], 0.75 + 0.25 * palette[0][2]])
             .f('uCA', fx.chromatic * (0.15 + 0.85 * kick + 1.5 * dropBurst) * dyn)
             .f('uGlitch', Math.min(1, glitch))
             .f('uGlitchSeed', glitchSeed)
@@ -681,6 +717,8 @@ export class Engine {
         this.fxA.dispose();
         this.fxB.dispose();
         this.bg2.dispose();
+        this.flareA.dispose();
+        this.flareB.dispose();
         for (const b of this.bloom) b.dispose();
         for (const c of this.images.values()) gl.deleteTexture(c.tex);
         gl.deleteTexture(this.specTex);

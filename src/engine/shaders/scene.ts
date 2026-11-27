@@ -130,6 +130,81 @@ vec3 background(vec2 uv, vec2 p) {
     return c * (1.0 - uImgDim) * (1.0 + uKick * 0.22 * uBgReact) * uBgBright * 1.25;
 }`,
 
+    stage: `
+float sdBox(vec2 p, vec2 b) {
+    vec2 d = abs(p) - b;
+    return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0);
+}
+vec3 background(vec2 uv, vec2 p) {
+    vec2 hs = halfSize();
+    vec3 col = mix(uColB * 0.04, vec3(0.004, 0.004, 0.008), smoothstep(-hs.y, hs.y, p.y));
+    float haze = 0.4 + 0.6 * fbm3(p * 2.2 + vec2(uTime * 0.05, -uTime * 0.02));
+    float aa = px() * 1.5;
+
+    // LED wall behind the stage
+    vec2 wallC = vec2(0.0, hs.y * 0.1);
+    vec2 wallH = vec2(hs.x * 0.64, hs.y * 0.44);
+    vec2 wq = p - wallC;
+    float dWall = sdBox(wq, wallH);
+    if (dWall < 0.0) {
+        float cells = mix(36.0, 96.0, uBgScale);
+        vec2 g = wq / (2.0 * wallH.y) * cells;
+        vec2 cell = floor(g);
+        vec2 fc = fract(g) - 0.5;
+        vec2 cc = (cell + 0.5) / cells * 2.0 * wallH.y;
+        float rr = length(cc);
+        float rings = 0.0;
+        for (int k = 0; k < 4; k++) {
+            float age = uKickAge[k];
+            float d = rr - age * 0.55;
+            rings += uKickStr[k] * exp(-d * d * 140.0) * exp(-age * 1.4);
+        }
+        float stripes = 0.5 + 0.5 * sin((cc.x + cc.y) * 16.0 - uMove * 2.5);
+        float rays = 0.5 + 0.5 * sin(atan(cc.y, cc.x) * 8.0 + uSpin * 2.0);
+        float pattern = mix(stripes, rays, uBgDetail);
+        pattern = smoothstep(0.35, 0.95, pattern);
+        float content = pattern * (0.12 + 0.38 * uEnergy) * (1.0 + 0.8 * uDrop) + rings * 1.2;
+        vec3 lc = pal(rr * 0.7 + uTime * 0.04 + content * 0.15);
+        float led = smoothstep(0.5, 0.28, length(fc));
+        col += lc * content * led * 0.6 + vec3(0.012, 0.013, 0.02) * led;
+    }
+    col += pal(0.15) * exp(-abs(dWall) / 0.004) * 0.12 * (0.5 + uKick);
+
+    // stage deck and floor glow
+    float deckY = -hs.y * 0.42;
+    col = mix(col, vec3(0.006, 0.006, 0.01), smoothstep(deckY + aa, deckY - aa, p.y));
+    col += pal(0.3) * exp(-abs(p.y - deckY) / 0.01) * 0.2 * (0.4 + uBass);
+
+    // truss with moving heads
+    float trussY = hs.y * 0.84;
+    float tb = p.y - trussY;
+    float chords = smoothstep(0.0035, 0.0, abs(abs(tb) - 0.022));
+    float lattice = smoothstep(0.004, 0.0, abs(fract((p.x + tb) * 20.0) - 0.5) / 20.0) * step(abs(tb), 0.022);
+    float trussM = max(chords, lattice);
+    col = mix(col, vec3(0.05, 0.055, 0.07) + uColA * 0.03, trussM * 0.95);
+
+    int n = int(mix(4.0, 10.0, uBgDetail));
+    float fn = float(n);
+    for (int i = 0; i < 10; i++) {
+        if (i >= n) break;
+        float fi = float(i);
+        float side = (fi + 0.5) / fn;
+        vec2 o = vec2((side - 0.5) * hs.x * 1.75, trussY - 0.035);
+        float pan = (side - 0.5) * 0.7 + sin(uBar * TAU * 0.5 + fi * 1.3) * 0.5 * (0.35 + uBgTwist);
+        vec2 dir = vec2(sin(pan), -cos(pan));
+        vec2 d = p - o;
+        float along = dot(d, dir);
+        float perp = abs(d.x * dir.y - d.y * dir.x);
+        float w = 0.006 + max(along, 0.0) * 0.09;
+        float beam = exp(-perp * perp / (w * w)) * smoothstep(0.0, 0.04, along) * exp(-max(along, 0.0) * 0.8);
+        float gate = (0.2 + 0.8 * max(uBeatPulse, uKick)) * (mod(floor(uBeatN) + fi, 2.0) < 1.0 ? 1.0 : 0.5);
+        vec3 bc = pal(side * 0.5 + uTime * 0.02);
+        col += bc * beam * gate * haze * 0.55;
+        col += mix(bc, vec3(1.0), 0.6) * exp(-length(d) / 0.006) * (0.4 + gate);
+    }
+    return col * uBgBright * 1.2;
+}`,
+
     tunnel: `
 vec3 background(vec2 uv, vec2 p) {
     p = rot(uSpin * 0.25) * p;

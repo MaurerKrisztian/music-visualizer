@@ -1,7 +1,7 @@
 // The project is one plain, serialisable object. The UI edits it, the engine
 // reads it every frame, and save/load just (de)serialises it.
 
-export const BACKGROUND_MODES = ['image', 'tunnel', 'warp', 'lasers', 'hex', 'grid', 'nebula', 'plasma', 'kaleido', 'void'] as const;
+export const BACKGROUND_MODES = ['image', 'stage', 'tunnel', 'warp', 'lasers', 'hex', 'grid', 'nebula', 'plasma', 'kaleido', 'void'] as const;
 export type BackgroundMode = (typeof BACKGROUND_MODES)[number];
 
 export const SPECTRUM_STYLES = ['radial-bars', 'radial-wave', 'linear-bars', 'linear-wave', 'oscilloscope', 'circle-scope', 'none'] as const;
@@ -106,6 +106,8 @@ export interface Project {
     };
     center: {
         enabled: boolean;
+        /** circle (logo disc), square (cover art) or a spinning vinyl record */
+        shape: 'circle' | 'square' | 'vinyl';
         imageId: string | null;
         x: number;
         y: number;
@@ -163,6 +165,8 @@ export interface Project {
     };
     fx: {
         bloom: number;
+        /** anamorphic (horizontal) lens flare streaks */
+        flare: number;
         bloomThreshold: number;
         bloomRadius: number;
         shake: number;

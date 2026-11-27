@@ -50,6 +50,7 @@ export function createDefaultProject(): Project {
         },
         center: {
             enabled: true,
+            shape: 'circle',
             imageId: null,
             x: 0,
             y: 0.08,
@@ -84,6 +85,7 @@ export function createDefaultProject(): Project {
         watermark: { imageId: null, corner: 'tr', size: 0.11, margin: 0.035, opacity: 0.85, pulse: 0.25 },
         fx: {
             bloom: 0.75,
+            flare: 0,
             bloomThreshold: 0.55,
             bloomRadius: 0.6,
             shake: 0.45,

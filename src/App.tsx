@@ -9,6 +9,7 @@ import { ExportPanel } from './ui/ExportPanel';
 import { IconFilm, IconOpen, IconRedo, IconSave, IconUndo } from './ui/icons';
 import { AudioPanel, ElementsPanel, FxPanel, LookPanel, ScenePanel, TextPanel } from './ui/panels';
 import { Preview } from './ui/Preview';
+import { toggleFullscreen } from './app/fullscreen';
 import { Timeline } from './ui/Timeline';
 import { Transport } from './ui/Transport';
 
@@ -124,6 +125,8 @@ export default function App() {
                 projectInput.current?.click();
             } else if (typing) {
                 return;
+            } else if (e.key === 'f' || e.key === 'F') {
+                toggleFullscreen();
             } else if (e.key === '?') {
                 setHelp((h) => !h);
             } else if (e.key === 'Escape') {
@@ -266,6 +269,8 @@ export default function App() {
                             <span>Save project file</span>
                             <kbd>Ctrl O</kbd>
                             <span>Open project file</span>
+                            <kbd>F</kbd>
+                            <span>Fullscreen watch mode</span>
                             <kbd>?</kbd>
                             <span>This help</span>
                         </div>

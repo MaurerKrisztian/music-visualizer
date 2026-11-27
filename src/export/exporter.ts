@@ -30,6 +30,17 @@ export class ExportCancelled extends Error {
     }
 }
 
+let aacRegistered = false;
+
+/** WebAssembly can be switched off by a page's security policy. */
+function wasmAllowed(): boolean {
+    try {
+        return new WebAssembly.Module(new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0])) instanceof WebAssembly.Module;
+    } catch {
+        return false;
+    }
+}
+
 async function pickCodecs(s: ExportSettings, bitrate: number): Promise<{ video: VideoCodec; audio: AudioCodec }> {
     const vCandidates: VideoCodec[] = s.format === 'mp4' ? ['avc', 'hevc', 'vp9', 'av1'] : ['vp9', 'vp8', 'av1'];
     let video: VideoCodec | null = null;
@@ -50,12 +61,22 @@ async function pickCodecs(s: ExportSettings, bitrate: number): Promise<{ video: 
     };
     let audio: AudioCodec;
     if (s.format === 'mp4') {
-        if (!(await can('aac', 320_000))) {
+        if (await can('aac', 320_000)) {
+            audio = 'aac';
+        } else if (wasmAllowed()) {
             // Linux, Firefox, older Safari: no native AAC encoder, use the WASM one.
-            const { registerAacEncoder } = await import('@mediabunny/aac-encoder');
-            registerAacEncoder();
+            if (!aacRegistered) {
+                const { registerAacEncoder } = await import('@mediabunny/aac-encoder');
+                registerAacEncoder();
+                aacRegistered = true;
+            }
+            audio = 'aac';
+        } else if (await can('opus', 256_000)) {
+            // WASM blocked (strict page policy): MP4 with Opus audio still plays in browsers and on YouTube.
+            audio = 'opus';
+        } else {
+            throw new Error('This browser cannot encode audio for MP4 here. Choose WebM instead.');
         }
-        audio = 'aac';
     } else {
         audio = 'opus';
         if (!(await can('opus', 256_000))) throw new Error('This browser cannot encode Opus audio for WebM. Choose MP4 instead.');

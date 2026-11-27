@@ -261,34 +261,73 @@ uniform float uRing;
 uniform float uRingGlow;
 uniform float uCtrSpin;
 uniform float uShockRings;
+uniform float uShape;
+uniform float uVinylSpin;
+
+vec3 logoSample(vec2 lq, float halfSize) {
+    float ia = uLogoSize.x / max(uLogoSize.y, 1.0);
+    vec2 sc = ia > 1.0 ? vec2(1.0 / ia, 1.0) : vec2(1.0, ia);
+    vec2 luv = lq / (2.0 * halfSize) * sc + 0.5;
+    luv.y = 1.0 - luv.y;
+    return texture(uLogo, luv).rgb;
+}
+
+vec3 emblem(vec2 q, float R) {
+    float r = length(q);
+    float a = atan(q.y, q.x);
+    float rays = 0.5 + 0.5 * sin(a * 12.0 + uSpin * 2.0 + uCtrSpin);
+    vec3 c = mix(vec3(0.015, 0.015, 0.03), uColB * 0.3, smoothstep(0.0, R, r));
+    c += uColA * pow(rays, 10.0) * 0.1 * smoothstep(R * 0.3, R, r);
+    c += mix(uColA, uColC, 0.3) * exp(-r / (R * 0.22)) * 0.3 * (0.3 + uBass + uKick);
+    c += uColA * exp(-abs(r - R * 0.72) / 0.002) * 0.25 * (0.4 + uKick);
+    return c;
+}
+
 void main() {
     vec2 p = centered(vUv);
     vec2 q = p - uCtr;
     float r = length(q);
     float aa = px() * 1.2;
-    float disc = smoothstep(uCtrR + aa, uCtrR - aa, r);
+    float R = uCtrR;
+    float sd;
     vec3 inner;
-    if (uHasLogo > 0.5) {
-        vec2 lq = rot(uCtrSpin) * q;
-        float ia = uLogoSize.x / max(uLogoSize.y, 1.0);
-        vec2 sc = ia > 1.0 ? vec2(1.0 / ia, 1.0) : vec2(1.0, ia);
-        vec2 luv = lq / (2.0 * uCtrR) * sc + 0.5;
-        luv.y = 1.0 - luv.y;
-        inner = texture(uLogo, luv).rgb;
+    if (uShape > 1.5) {
+        // spinning vinyl record, the logo is the label
+        sd = r - R;
+        float label = R * 0.42;
+        vec2 rq = rot(uVinylSpin) * q;
+        float ang = atan(rq.y, rq.x);
+        float grooveZone = smoothstep(label * 1.02, label * 1.12, r) * smoothstep(R, R * 0.965, r);
+        float grooves = 0.5 + 0.5 * sin(r / R * 300.0 + sin(ang * 3.0) * 0.5);
+        vec3 vinyl = vec3(0.02, 0.02, 0.025) + vec3(0.035) * grooves * grooveZone;
+        float gaps = smoothstep(0.004, 0.0, abs(r - R * 0.68)) + smoothstep(0.004, 0.0, abs(r - R * 0.83));
+        vinyl *= 1.0 - gaps * 0.6;
+        float a0 = atan(q.y, q.x);
+        float sheen = pow(max(0.0, cos(2.0 * (a0 - 0.8))), 16.0) + 0.6 * pow(max(0.0, cos(2.0 * (a0 + 2.2))), 28.0);
+        vinyl += mix(vec3(0.6, 0.7, 1.0), uColA, 0.45) * sheen * 0.26 * (0.55 + 0.7 * uKick) * grooveZone;
+        vinyl += vec3(0.22) * smoothstep(0.004, 0.0, abs(r - R * 0.985));
+        if (r < label * 1.02) {
+            vec3 lab = uHasLogo > 0.5 ? logoSample(rq, label) : emblem(rq * (R / label), R) + uColB * 0.15;
+            vinyl = mix(vinyl, lab, smoothstep(label * 1.02, label * 0.99, r));
+            vinyl = mix(vinyl, vec3(0.0), smoothstep(R * 0.03 + aa, R * 0.03 - aa, r));
+        }
+        inner = vinyl;
+    } else if (uShape > 0.5) {
+        // square cover art with slightly rounded corners
+        float hsq = R * 0.9;
+        vec2 d = abs(q) - vec2(hsq) + R * 0.06;
+        sd = length(max(d, 0.0)) + min(max(d.x, d.y), 0.0) - R * 0.06;
+        inner = uHasLogo > 0.5 ? logoSample(q, hsq) : emblem(q, R);
     } else {
-        float a = atan(q.y, q.x);
-        float rays = 0.5 + 0.5 * sin(a * 12.0 + uSpin * 2.0 + uCtrSpin);
-        inner = mix(vec3(0.015, 0.015, 0.03), uColB * 0.3, smoothstep(0.0, uCtrR, r));
-        inner += uColA * pow(rays, 10.0) * 0.1 * smoothstep(uCtrR * 0.3, uCtrR, r);
-        inner += mix(uColA, uColC, 0.3) * exp(-r / (uCtrR * 0.22)) * 0.3 * (0.3 + uBass + uKick);
-        float ringIn = abs(r - uCtrR * 0.72);
-        inner += uColA * exp(-ringIn / 0.002) * 0.25 * (0.4 + uKick);
+        sd = r - R;
+        inner = uHasLogo > 0.5 ? logoSample(rot(uCtrSpin) * q, R) : emblem(q, R);
     }
+    float disc = smoothstep(aa, -aa, sd);
     vec3 col = inner * disc;
     float alpha = disc;
     if (uRing > 0.001) {
         float rw = uRing * 0.008 + 0.0015;
-        float d = abs(r - uCtrR - rw * 0.5);
+        float d = abs(sd - rw * 0.5);
         float ringM = smoothstep(rw * 0.5 + aa, rw * 0.5 - aa, d);
         vec3 rc = grad(0.5 + 0.5 * sin(atan(q.y, q.x) + uTime * 0.6));
         col = mix(col, rc * (1.0 + 0.8 * uKick), ringM);
@@ -298,10 +337,10 @@ void main() {
     if (uShockRings > 0.001) {
         for (int k = 0; k < 4; k++) {
             float age = uKickAge[k];
-            float rr = uCtrR + age * 0.75;
+            float rr = age * 0.75;
             float w = 0.0015 + age * 0.012;
             float a = uKickStr[k] * exp(-age * 3.2) * uShockRings;
-            float d = abs(r - rr);
+            float d = abs(sd - rr);
             col += mix(uColA, uColC, float(k) / 3.0) * smoothstep(w + aa, 0.0, d) * a;
         }
     }
