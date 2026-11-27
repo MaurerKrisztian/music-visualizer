@@ -1,6 +1,6 @@
 # Canvasbeats: music visualizer for hard dance
 
-Demo: https://canvasbeats.com
+Demo: https://maurerkrisztian.github.io/music-visualizer/
 
 A browser music visualizer built for **hardstyle, rawstyle, hardcore, uptempo and frenchcore**. It also works for any other genre. Drop in a track, pick a look, and export a YouTube-ready video. Everything runs locally in the browser.
 
