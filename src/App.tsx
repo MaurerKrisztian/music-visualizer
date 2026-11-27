@@ -1,783 +1,301 @@
-import React, {useState, useEffect, useRef} from 'react';
-import animateText from "./elements/animateText.ts";
-import {animateCircles, ICircle, initializeCircles} from "./elements/circleAnimation.ts";
-import {animateBackground, setBackgroundImage} from "./elements/backgroundAnimation.ts";
-import {
-    loadFont,
-} from "./elements/saveLoad.ts";
-import AudioControls from "./components/AudioControls.tsx";
-import defaultAudio from './assets/music.mp3';
-import Recorder, {estimateFileSize} from "./components/Recorder.tsx";
-import {
-    drawMusicVisualization,
-    MusicVisualizationSettings
-} from "./elements/circleBarVisuaalization.ts";
-import {drawBarVisualization, ISimpleBarSettings} from "./elements/barAnimation.ts";
-import {
-    IBackgroundSettings,
-    ICircleSettings,
-    IEnableVisuals,
-    IRenderingSettings,
-    ITextSettings
-} from "./interfaces/settings.interface.ts";
-import SaveLoad from "./components/SaveLoad.tsx";
-import FontsList from "./components/FontList.tsx";
+import { useEffect, useRef, useState } from 'react';
+import { appStore, loadAudio, loadLyricsFile, player, restoreSession, seek, startAutosave, toast, togglePlay } from './app/session';
+import { isArtifactView, safeFileName, saveFile } from './export/settings';
+import { assets } from './project/assets';
+import { ensureFont } from './project/fonts';
+import { parseProjectFile, serializeProject } from './project/projectFile';
+import { projectStore, setProject, useProject, useStore } from './project/store';
+import { ExportPanel } from './ui/ExportPanel';
+import { IconFilm, IconOpen, IconRedo, IconSave, IconUndo } from './ui/icons';
+import { AudioPanel, ElementsPanel, FxPanel, LookPanel, ScenePanel, TextPanel } from './ui/panels';
+import { Preview } from './ui/Preview';
+import { toggleFullscreen } from './app/fullscreen';
+import { Timeline } from './ui/Timeline';
+import { Transport } from './ui/Transport';
 
-const App: React.FC = () => {
-    const [file, setFile] = useState<File | null>(null);
-    const [isPlaying, setIsPlaying] = useState(false);
+const TABS = [
+    { id: 'look', label: 'Presets' },
+    { id: 'audio', label: 'Audio' },
+    { id: 'scene', label: 'Scene' },
+    { id: 'elements', label: 'Elements' },
+    { id: 'text', label: 'Text' },
+    { id: 'fx', label: 'FX' },
+    { id: 'export', label: 'Export' },
+];
 
+const isAudio = (f: File) => f.type.startsWith('audio/') || /\.(mp3|wav|flac|ogg|oga|m4a|aac|opus|aiff?)$/i.test(f.name);
+const isImage = (f: File) => f.type.startsWith('image/');
+const isFont = (f: File) => /\.(ttf|otf|woff2?)$/i.test(f.name);
+const isProject = (f: File) => /\.(canvasbeats|json)$/i.test(f.name);
+const isLyrics = (f: File) => /\.(lrc|srt)$/i.test(f.name);
 
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const audioRef = useRef<HTMLAudioElement>(new Audio());
-    const audioContextRef = useRef<AudioContext | null>(null);
-    const analyserRef = useRef<AnalyserNode | null>(null);
-    const dataArrayRef = useRef<Uint8Array | null>(null);
-
-    const animationFrameRef = useRef<number | null>(null);
-
-    const resolutions = {
-        "420p": {width: 640, height: 420},
-        "HD": {width: 1280, height: 720},
-        "FullHD": {width: 1920, height: 1080},
-        "2K": {width: 2560, height: 1440}
-    };
-
-
-    const enableVisualsSettingsRef = useRef<IEnableVisuals>({
-        simpleBar: true,
-        circleBar: false,
-        backgroundCircles: true,
-        text: true,
-    });
-
-    const textSettingsRef = useRef<ITextSettings>({
-        maxSizeMultiplier: 222,
-        smoothness: 100,
-        borderColor: '#000000',
-        borderThickness: 1,
-        fontSize: 44,
-        fontColor: '#000000',
-        textInput: 'Sample Text',
-        selectedFont: 'Arial',
-        x: resolutions.FullHD.width / 2,
-        y: resolutions.FullHD.height / 4,
-        fontFile: undefined
-    });
-
-
-    const circleAnimationSettingsRef = useRef<ICircleSettings>({
-        circleSize: 5,
-        circleSpeed: 1,
-        circleColor: '#d3d3d3',
-        numberOfCircles: 11,
-        beatSpeedUp: 25,
-        zigzagSmoothness: 1
-    });
-
-    const simpleBarSettingsRef = useRef<ISimpleBarSettings>(
-        {
-            barStyle: "top",
-            spacing: 15,
-            barLength: 1,
-            barWidth: 15,
-            beatMultiplier: 2,
-            barColor: "white",
-            numBars: 55,
-            useFullWidth: false,
-            xPos: 50,
-            yPos: 100
-        }
-    );
-
-
-    const backgroundSettingsRef = useRef<IBackgroundSettings>({
-        backgroundColor: '#f59292',
-        backgroundImage: '',
-        shakeIntensity: 0
-    });
-
-
-    const renderingSettingsRef = useRef<IRenderingSettings>({
-        bitRateInMb: 6,
-    });
-
-    const musicVisSettingsRef = useRef<MusicVisualizationSettings>({
-        circle: {
-            baseRadius: 22,
-            growthFactor: 222,
-            color: '#006400',
-            imageX: resolutions.FullHD.width / 2,
-            imageY: resolutions.FullHD.height / 2,
-        },
-        bars: {
-            widthMultiplier: 155,
-            lengthMultiplier: 2,
-            color: (i) => `rgb(${i * 2}, ${200 - i * 2}, ${50 + i * 2})`
-        }
-    });
-
-
-    const handleSettingChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const {name, value} = e.target;
-        const [category, key] = name.split('.');
-        musicVisSettingsRef.current[category][key] = isNaN(value) ? value : Number(value);
-    };
-
-    const [backgroundType, setBackgroundType] = useState("color"); // Initial state is set to "color"
-    const handleChange = (e) => {
-        setBackgroundType(e.target.value); // Update the state when the select value changes
-    };
-
-    interface ISettingsVisibility {
-        text: boolean;
-        font: boolean;
-        circle: boolean;
-        background: boolean;
-        render: boolean;
-        musicVisualization: boolean;
-        simpleBar: boolean;
-    }
-
-    const [settingsVisibility, setSettingsVisibility] = useState<ISettingsVisibility>({
-        text: false,
-        font: false,
-        circle: false,
-        background: false,
-        render: false,
-        musicVisualization: false,
-        simpleBar: false,
-    });
-    const toggleSettings = (setting: keyof ISettingsVisibility) => {
-        setSettingsVisibility(prevSettings => ({
-            ...prevSettings,
-            [setting]: !prevSettings[setting]
-        }));
-    };
-
-    const handleFontFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const files = event.target.files;
-        if (files && files[0]) {
-            textSettingsRef.current.fontFile = files[0];
-            loadFont(files[0], textSettingsRef);
-        }
-    };
-
-    const handleFontChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-        textSettingsRef.current.selectedFont = event.target.value;
-    };
-
-
-    const fetchDefaultAudioFile = async () => {
-        try {
-            const response = await fetch(defaultAudio);
-            const blob = await response.blob();
-            const defaultFile = new File([blob], 'defaultMusic.mp3', {type: 'audio/mpeg'});
-            return defaultFile;
-        } catch (error) {
-            console.error('Error fetching default audio file:', error);
-            return null;
-        }
-    };
-
-    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const files = event.target.files;
-        if (files) {
-            const audioURL = URL.createObjectURL(files[0]);
-            audioRef.current.src = audioURL;
-            setFile(files[0]);
+async function handleFiles(files: FileList | File[]) {
+    for (const f of Array.from(files)) {
+        if (isAudio(f)) {
+            void loadAudio(f, f.name, { persist: true, autoMeta: true });
+        } else if (isImage(f)) {
+            const id = await assets.add(f, f.name);
+            projectStore.update((p) => {
+                p.background.imageId = id;
+                p.background.mode = 'image';
+            });
+            toast('Image set as background. Use Elements › Logo to put an image in the centre.');
+        } else if (isFont(f)) {
+            const id = await assets.add(f, f.name);
+            setProject('text.font', assets.fontFamily(id));
+            toast(`Font "${f.name}" loaded.`);
+        } else if (isProject(f)) {
+            await openProjectFile(f);
+        } else if (isLyrics(f)) {
+            await loadLyricsFile(f);
         } else {
-            const defaultFile = await fetchDefaultAudioFile();
-            audioRef.current.src = defaultAudio;
-            setFile(null);
-            setFile(defaultFile);
+            toast(`Unsupported file: ${f.name}`, 'error');
         }
-
-
-        setTimeout(() => {
-            setEstimatedFileSize(estimateFileSize(renderingSettingsRef.current.bitRateInMb, audioRef.current.duration))
-        }, 222)
-
-    };
-
-
-    const handlePlay = async () => {
-        if (!file) {
-            const defaultFile = await fetchDefaultAudioFile();
-            audioRef.current.src = defaultAudio;
-            setFile(null);
-            setFile(defaultFile);
-        }
-
-
-        if (!audioContextRef.current) {
-            audioContextRef.current = new AudioContext();
-            const track = audioContextRef.current.createMediaElementSource(audioRef.current);
-            analyserRef.current = audioContextRef.current.createAnalyser();
-            track.connect(analyserRef.current);
-            analyserRef.current.connect(audioContextRef.current.destination);
-        }
-
-        audioRef.current.playbackRate = 1
-        audioRef.current.play()
-            .then(() => {
-                setIsPlaying(true);
-                if (analyserRef.current) {
-                    analyserRef.current.fftSize = 256;
-                    const bufferLength = analyserRef.current.frequencyBinCount;
-                    dataArrayRef.current = new Uint8Array(bufferLength);
-                    startAnimation();
-                }
-            })
-            .catch(error => console.error('Error playing audio:', error));
-    };
-
-    let circles: ICircle[] = []
-
-    if (canvasRef.current) {
-        circles = initializeCircles(canvasRef.current, circleAnimationSettingsRef.current);
     }
+}
 
+async function openProjectFile(f: File) {
+    try {
+        const p = await parseProjectFile(await f.text());
+        projectStore.set(p);
+        void ensureFont(p.text.font);
+        toast(`Project "${f.name}" loaded.`);
+    } catch (e) {
+        toast(`Could not open project: ${e instanceof Error ? e.message : String(e)}`, 'error');
+    }
+}
 
-    const startAnimation = () => {
-        if (!canvasRef.current) {
-            return;
-        }
-        if (!canvasRef.current || !analyserRef.current || !dataArrayRef.current) return;
+async function saveProjectFile() {
+    const p = projectStore.get();
+    const json = await serializeProject(p);
+    const name = safeFileName([p.meta.artist, p.meta.title].filter(Boolean).join(' - ') || 'project');
+    // artifact viewers only accept common extensions, so use .json there
+    const fileName = isArtifactView() ? `${name}.canvasbeats.json` : `${name}.canvasbeats`;
+    const out = await saveFile(new Blob([json], { type: 'application/json' }), fileName);
+    if (out.ok) toast('Project saved.');
+    else if (!out.declined) toast(out.message, 'error');
+}
 
-        const ctx = canvasRef.current.getContext('2d');
-
-        if (!ctx) return;
-
-        const animate = () => {
-            ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height)
-            if (backgroundSettingsRef.current.backgroundImage !== null && backgroundSettingsRef.current.backgroundImage !== "") {
-                animateBackground(ctx, canvasRef.current, analyserRef.current, dataArrayRef.current, backgroundSettingsRef.current);
-            } else {
-                ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-                ctx.fillStyle = backgroundSettingsRef.current.backgroundColor;
-                ctx.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-            }
-
-
-            if (enableVisualsSettingsRef.current.backgroundCircles) {
-                animateCircles(ctx, circles, analyserRef.current, dataArrayRef.current, circleAnimationSettingsRef.current);
-            }
-
-            const bufferLength = analyserRef.current.frequencyBinCount;
-            const dataArray = dataArrayRef.current //new Uint8Array(bufferLength);
-
-            analyserRef.current.getByteFrequencyData(dataArray);
-            const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
-
-            if (enableVisualsSettingsRef.current.simpleBar) {
-                drawBarVisualization(ctx, bufferLength, dataArray, simpleBarSettingsRef.current)
-            }
-
-            if (enableVisualsSettingsRef.current.circleBar) {
-                drawMusicVisualization(ctx, bufferLength, dataArray, musicVisSettingsRef.current);
-            }
-
-            if (enableVisualsSettingsRef.current.text) {
-                animateText(
-                    ctx,
-                    average,
-                    textSettingsRef.current
-                );
-            }
-
-            animationFrameRef.current = requestAnimationFrame(animate);
-        };
-
-
-        animate();
-    };
-
-    const handleBackgroundImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        if (!event.target.files) {
-            console.warn("no file selected")
-            return;
-        }
-        const file = event.target.files[0];
-        const imageUrl = URL.createObjectURL(file);
-
-        setBackgroundImage(imageUrl);
-
-        backgroundSettingsRef.current.backgroundImage = imageUrl;
-    };
+export default function App() {
+    const tab = useStore(appStore, (s) => s.tab);
+    const track = useStore(appStore, (s) => s.track);
+    const toastMsg = useStore(appStore, (s) => s.toast);
+    const font = useProject((p) => p.text.font);
+    const [dragging, setDragging] = useState(false);
+    const audioInput = useRef<HTMLInputElement>(null);
+    const projectInput = useRef<HTMLInputElement>(null);
+    const [toastVisible, setToastVisible] = useState(false);
+    const [help, setHelp] = useState(false);
 
     useEffect(() => {
+        startAutosave();
+        void restoreSession();
+    }, []);
+
+    useEffect(() => {
+        void ensureFont(font);
+    }, [font]);
+
+    useEffect(() => {
+        if (!toastMsg) return;
+        setToastVisible(true);
+        const t = setTimeout(() => setToastVisible(false), 4000);
+        return () => clearTimeout(t);
+    }, [toastMsg]);
+
+    useEffect(() => {
+        const onKey = (e: KeyboardEvent) => {
+            const el = e.target as HTMLElement;
+            const typing = el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable);
+            const mod = e.ctrlKey || e.metaKey;
+            if (mod && e.key.toLowerCase() === 'z') {
+                if (typing) return;
+                e.preventDefault();
+                if (e.shiftKey) projectStore.redo();
+                else projectStore.undo();
+            } else if (mod && e.key.toLowerCase() === 'y') {
+                if (typing) return;
+                e.preventDefault();
+                projectStore.redo();
+            } else if (mod && e.key.toLowerCase() === 's') {
+                e.preventDefault();
+                void saveProjectFile();
+            } else if (mod && e.key.toLowerCase() === 'o') {
+                e.preventDefault();
+                projectInput.current?.click();
+            } else if (typing) {
+                return;
+            } else if (e.key === 'f' || e.key === 'F') {
+                toggleFullscreen();
+            } else if (e.key === '?') {
+                setHelp((h) => !h);
+            } else if (e.key === 'Escape') {
+                setHelp(false);
+            } else if (e.code === 'Space') {
+                e.preventDefault();
+                void togglePlay();
+            } else if (e.key === 'ArrowLeft') {
+                seek(Math.max(0, player.currentTime - (e.shiftKey ? 1 : 5)));
+            } else if (e.key === 'ArrowRight') {
+                seek(player.currentTime + (e.shiftKey ? 1 : 5));
+            }
+        };
+        let depth = 0;
+        const onEnter = (e: DragEvent) => {
+            if (!e.dataTransfer?.types.includes('Files')) return;
+            depth++;
+            setDragging(true);
+        };
+        const onLeave = () => {
+            depth = Math.max(0, depth - 1);
+            if (depth === 0) setDragging(false);
+        };
+        const onOver = (e: DragEvent) => e.preventDefault();
+        const onDrop = (e: DragEvent) => {
+            e.preventDefault();
+            depth = 0;
+            setDragging(false);
+            if (e.dataTransfer?.files?.length) void handleFiles(e.dataTransfer.files);
+        };
+        window.addEventListener('keydown', onKey);
+        window.addEventListener('dragenter', onEnter);
+        window.addEventListener('dragleave', onLeave);
+        window.addEventListener('dragover', onOver);
+        window.addEventListener('drop', onDrop);
         return () => {
-            if (animationFrameRef.current) {
-                cancelAnimationFrame(animationFrameRef.current);
-            }
-            if (audioContextRef.current) {
-                audioContextRef.current.close();
-            }
+            window.removeEventListener('keydown', onKey);
+            window.removeEventListener('dragenter', onEnter);
+            window.removeEventListener('dragleave', onLeave);
+            window.removeEventListener('dragover', onOver);
+            window.removeEventListener('drop', onDrop);
         };
     }, []);
 
-
-    const [resolution, setResolution] = useState("FullHD");
-    const [estimatedFileSize, setEstimatedFileSize] = useState("");
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        if (canvas && resolutions[resolution]) {
-            const {width, height} = resolutions[resolution];
-            canvas.width = width;
-            canvas.height = height;
-            // may need to reinitialize or redraw your canvas content here
-        }
-    }, [resolution]);
-
-    const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        if (!event.target.files) {
-            console.warn("no file selected")
-            return;
-        }
-
-        const file = event.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const newImage = new Image();
-                newImage.onload = () => {
-                    musicVisSettingsRef.current.circle.image = newImage;
-                };
-                newImage.src = e.target?.result as string;
-            };
-            reader.readAsDataURL(file);
-        }
-    };
-
-    const handleResolutionChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-        setResolution(event.target.value);
-    };
-
-    const canvasWidth = canvasRef.current?.width || 0;
-    const canvasHeight = canvasRef.current?.height || 0;
+    const setTab = (id: string) => appStore.update((s) => void (s.tab = id), false);
 
     return (
-        <div className="container">
-            <SaveLoad settings={{
-                settingsVisibility,
-                simpleBarSettingsRef,
-                circleAnimationSettingsRef,
-                backgroundSettingsRef,
-                textSettingsRef,
-                renderingSettingsRef,
-                enableVisualsSettingsRef
-            }}></SaveLoad>
-
-
-            <div className="control-group">
-                Audio file: <input type="file" onChange={handleFileChange} accept="audio/*"/>
-                <div className="container">
-                    {/* ... other components and content */}
-                    <AudioControls audioRef={audioRef}/>
-
-                    {/*{file && <Recorder key={file.name} audioRef={audioRef} settings={renderingSettingsRef} canvasRef={canvasRef}/>}*/}
-                    {/* ... other components and content */}
+        <div className="app">
+            <header className="topbar">
+                <div className="brand">
+                    <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="" width={26} height={26} />
+                    <span className="brand-name">Canvasbeats</span>
+                    <span className="brand-tag">hard dance visualizer</span>
                 </div>
-                {/*{file && !isPlaying && <button onClick={handlePlay}>Play</button>}*/}
-                <button onClick={handlePlay}>Start & visualize</button>
-            </div>
-
-
-            <div className="group-header" onClick={() => toggleSettings("render")}>
-                Render / Export
-            </div>
-            {settingsVisibility.render && (
-                <div className="settings-group">
-                    <label>
-                        Canvas Resolution:
-                        <select value={resolution} onChange={handleResolutionChange}>
-                            {Object.keys(resolutions).map(res => (
-                                <option key={res} value={res}>{res}</option>
-                            ))}
-                        </select>
-                    </label>
-                    <label>
-                        Bitrate:
-                        <input type="number" defaultValue={renderingSettingsRef.current.bitRateInMb}
-                               onChange={(e) => {
-                                   renderingSettingsRef.current.bitRateInMb = parseFloat(e.target.value);
-                                   setEstimatedFileSize(estimateFileSize(renderingSettingsRef.current.bitRateInMb, audioRef.current.duration))
-                               }}/>MB
-                    </label>
-                    <hr/>
-                    Estimated video file size is: {estimatedFileSize}
-                    <label>
-                        {file && <Recorder key={file.name} audioRef={audioRef} settings={renderingSettingsRef}
-                                           canvasRef={canvasRef}/>}
-                    </label>
+                <div className="now-playing" title={track?.name}>
+                    {track ? track.name : ''}
                 </div>
-            )}
-
-            <div className="group-header" onClick={() => toggleSettings("text")}>
-                Text Settings
-            </div>
-            {settingsVisibility.text && (
-                <div className="settings-group">
-                    <label>
-                        Text:
-                        <input type="text" defaultValue={textSettingsRef.current.textInput}
-                               onChange={e => textSettingsRef.current.textInput = e.target.value}/>
-                    </label>
-                    <label>
-                        Text X Coordinate:
-                        <input
-                            type="range"
-                            name="text.x"
-                            min="0"
-                            max={canvasWidth}
-                            defaultValue={textSettingsRef.current.x}
-                            onChange={(e) => textSettingsRef.current.x = parseInt(e.target.value)}
-                        />
-                    </label>
-                    <label>
-                        Text Y Coordinate:
-                        <input
-                            type="range"
-                            name="text.y"
-                            min="0"
-                            max={canvasHeight}
-                            defaultValue={textSettingsRef.current.y}
-                            onChange={(e) => textSettingsRef.current.y = parseInt(e.target.value)}
-                        />
-                    </label>
-                    <label>
-                        Max Size Multiplier:
-                        <input type="number" defaultValue={textSettingsRef.current.maxSizeMultiplier}
-                               onChange={e => textSettingsRef.current.maxSizeMultiplier = parseFloat(e.target.value)}/>
-                    </label>
-                    <label>
-                        Border Color:
-                        <input type="color" defaultValue={textSettingsRef.current.borderColor}
-                               onChange={e => textSettingsRef.current.borderColor = e.target.value}/>
-                    </label>
-                    <label>
-                        Border Thickness:
-                        <input type="number" defaultValue={textSettingsRef.current.borderThickness}
-                               onChange={e => textSettingsRef.current.borderThickness = parseInt(e.target.value)}/>
-                    </label>
-                    <label>
-                        Font Size:
-                        <input type="number"
-                               defaultValue={textSettingsRef.current.fontSize}
-                               onChange={e => textSettingsRef.current.fontSize = parseInt(e.target.value)}/>
-                    </label>
-                    <label>
-                        Font Color:
-                        <input type="color" defaultValue={textSettingsRef.current.fontColor}
-                               onChange={e => textSettingsRef.current.fontColor = e.target.value}/>
-                    </label>
-                    <div className="group-header" onClick={() => toggleSettings("font")}>
-                        Font Settings
+                <div className="actions">
+                    <button className="btn ghost" onClick={() => audioInput.current?.click()} title="Open an audio file (or drop it anywhere)">
+                        Open audio
+                    </button>
+                    <button className="icon-btn" onClick={() => projectStore.undo()} title="Undo (Ctrl+Z)">
+                        <IconUndo />
+                    </button>
+                    <button className="icon-btn" onClick={() => projectStore.redo()} title="Redo (Ctrl+Shift+Z)">
+                        <IconRedo />
+                    </button>
+                    <button className="icon-btn" onClick={() => projectInput.current?.click()} title="Open project (Ctrl+O)">
+                        <IconOpen />
+                    </button>
+                    <button className="icon-btn" onClick={() => void saveProjectFile()} title="Save project file (Ctrl+S)">
+                        <IconSave />
+                    </button>
+                    <button className="icon-btn" onClick={() => setHelp(true)} title="Keyboard shortcuts (?)">
+                        ?
+                    </button>
+                    <button className="btn primary" onClick={() => setTab('export')}>
+                        <IconFilm /> Export video
+                    </button>
+                </div>
+                <input
+                    ref={audioInput}
+                    type="file"
+                    accept="audio/*,.mp3,.wav,.flac,.ogg,.m4a,.aac,.opus"
+                    hidden
+                    onChange={(e) => {
+                        if (e.target.files) void handleFiles(e.target.files);
+                        e.target.value = '';
+                    }}
+                />
+                <input
+                    ref={projectInput}
+                    type="file"
+                    accept=".canvasbeats,.json"
+                    hidden
+                    onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) void openProjectFile(f);
+                        e.target.value = '';
+                    }}
+                />
+            </header>
+            <main className="main">
+                <div className="stage-col">
+                    <Preview />
+                    <Transport />
+                    <Timeline />
+                </div>
+                <aside className="sidebar">
+                    <nav className="tabs">
+                        {TABS.map((t) => (
+                            <button key={t.id} className={tab === t.id ? 'on' : ''} onClick={() => setTab(t.id)}>
+                                {t.label}
+                            </button>
+                        ))}
+                    </nav>
+                    <div className="tab-body">
+                        {tab === 'look' && <LookPanel />}
+                        {tab === 'audio' && <AudioPanel />}
+                        {tab === 'scene' && <ScenePanel />}
+                        {tab === 'elements' && <ElementsPanel />}
+                        {tab === 'text' && <TextPanel />}
+                        {tab === 'fx' && <FxPanel />}
+                        {tab === 'export' && <ExportPanel />}
                     </div>
-                    {settingsVisibility.font && (
-                        <div className="settings-group">
-                            <label>
-                                Font:
-                                <select onChange={handleFontChange}>
-                                    {['Arial', 'Verdana', 'Times New Roman', 'Georgia', 'Courier New'].map(font => (
-                                        <option key={font} value={font}>{font}</option>
-                                    ))}
-                                </select>
-                            </label>
-                            <label>
-                                or upload a font file:
-                                <input type="file" onChange={handleFontFileUpload} accept=".ttf, .otf"/>
-                            </label>
-
-                            <FontsList textSettingsRef={textSettingsRef}></FontsList>
+                </aside>
+            </main>
+            {help && (
+                <div className="modal-backdrop" onClick={() => setHelp(false)}>
+                    <div className="modal" onClick={(e) => e.stopPropagation()}>
+                        <h3>Keyboard shortcuts</h3>
+                        <div className="shortcuts">
+                            <kbd>Space</kbd>
+                            <span>Play / pause</span>
+                            <kbd>← →</kbd>
+                            <span>Seek 5 s (Shift: 1 s)</span>
+                            <kbd>Ctrl Z</kbd>
+                            <span>Undo (Ctrl Shift Z / Ctrl Y: redo)</span>
+                            <kbd>Ctrl S</kbd>
+                            <span>Save project file</span>
+                            <kbd>Ctrl O</kbd>
+                            <span>Open project file</span>
+                            <kbd>F</kbd>
+                            <span>Fullscreen watch mode</span>
+                            <kbd>?</kbd>
+                            <span>This help</span>
                         </div>
-                    )}
+                        <p className="hint">
+                            Drop audio, cover art, fonts, .lrc/.srt lyrics or .canvasbeats projects anywhere. Double-click a slider to reset it. Drag the yellow handles on the timeline to change the export range.
+                        </p>
+                        <button className="btn ghost" onClick={() => setHelp(false)}>
+                            Close
+                        </button>
+                    </div>
                 </div>
             )}
-
-
-            <div className="group-header" onClick={() => toggleSettings("musicVisualization")}>
-                Circle with bars Settings
-            </div>
-            {settingsVisibility.musicVisualization && (
-                <div className="settings-group">
-                    {/* Circle Settings */}
-                    <label>
-                        Circle Base Radius:
-                        <input
-                            type="number"
-                            name="circle.baseRadius"
-                            defaultValue={musicVisSettingsRef.current.circle.baseRadius}
-                            onChange={handleSettingChange}
-                        />
-                    </label>
-                    <label>
-                        Circle Growth Factor:
-                        <input
-                            type="number"
-                            name="circle.growthFactor"
-                            defaultValue={musicVisSettingsRef.current.circle.growthFactor}
-                            onChange={handleSettingChange}
-                        />
-                    </label>
-                    <label>
-                        Circle Color:
-                        <input
-                            type="color"
-                            name="circle.color"
-                            defaultValue={musicVisSettingsRef.current.circle.color}
-                            onChange={handleSettingChange}
-                        />
-                    </label>
-                    <label>
-                        Circle Image:
-                        <input type="file" onChange={handleImageChange} accept="image/*"/>
-                    </label>
-                    <label>
-                        X Coordinate:
-                        <input
-                            type="range"
-                            name="circle.imageX"
-                            min="0"
-                            max={canvasWidth}
-                            defaultValue={canvasWidth / 2}
-                            onChange={handleSettingChange}
-                        />
-                    </label>
-                    <label>
-                        Y Coordinate:
-                        <input
-                            type="range"
-                            name="circle.imageY"
-                            min="0"
-                            max={canvasHeight}
-                            defaultValue={musicVisSettingsRef.current.circle.imageY}
-                            onChange={handleSettingChange}
-                        />
-                    </label>
-
-                    {/* Bar Settings */}
-                    <label>
-                        Bars Width Multiplier:
-                        <input
-                            type="number"
-                            name="bars.widthMultiplier"
-                            defaultValue={musicVisSettingsRef.current.bars.widthMultiplier}
-                            onChange={handleSettingChange}
-                        />
-                    </label>
-                    <label>
-                        Bars Length Multiplier:
-                        <input
-                            type="number"
-                            name="bars.lengthMultiplier"
-                            defaultValue={musicVisSettingsRef.current.bars.lengthMultiplier}
-                            onChange={handleSettingChange}
-                        />
-                    </label>
+            {dragging && (
+                <div className="drop-overlay">
+                    <div>
+                        <b>Drop it</b>
+                        <span>audio · cover art / images · fonts · .lrc / .srt lyrics · .canvasbeats projects</span>
+                    </div>
                 </div>
             )}
-
-
-            <div className="group-header" onClick={() => toggleSettings("circle")}>
-                Circle Settings
-            </div>
-            {settingsVisibility.circle && (
-                <div className="settings-group">
-                    <label>
-                        Number of Circles:
-                        <input type="number" defaultValue={circleAnimationSettingsRef.current.numberOfCircles}
-                               onChange={(e) => {
-                                   circleAnimationSettingsRef.current.numberOfCircles = parseInt(e.target.value);
-                               }}/>
-                    </label>
-                    <label>
-                        Circle Size:
-                        <input type="number" defaultValue={circleAnimationSettingsRef.current.circleSize}
-                               onChange={e => circleAnimationSettingsRef.current.circleSize = parseFloat(e.target.value)}/>
-                    </label>
-                    <label>
-                        beat speed up factor:
-                        <input type="number" defaultValue={circleAnimationSettingsRef.current.beatSpeedUp}
-                               onChange={e => circleAnimationSettingsRef.current.beatSpeedUp = parseFloat(e.target.value)}/>
-                    </label>
-                    <label>
-                        Circle Speed:
-                        <input type="number" defaultValue={circleAnimationSettingsRef.current.circleSpeed}
-                               onChange={e => circleAnimationSettingsRef.current.circleSpeed = parseFloat(e.target.value)}/>
-                    </label>
-                    <label>
-                        Circle Color:
-                        <input type="color" defaultValue={circleAnimationSettingsRef.current.circleColor}
-                               onChange={e => circleAnimationSettingsRef.current.circleColor = e.target.value}/>
-                    </label>
+            {toastMsg && (
+                <div key={toastMsg.id} className={`toast ${toastMsg.kind}${toastVisible ? ' show' : ''}`}>
+                    {toastMsg.text}
                 </div>
             )}
-
-
-            <div className="group-header" onClick={() => toggleSettings("simpleBar")}>
-                Simple Bar Settings
-            </div>
-            {settingsVisibility.simpleBar && (
-                <div className="settings-group">
-                    <label>
-                        Bar Style:
-                        <select defaultValue={simpleBarSettingsRef.current.barStyle}
-                                onChange={e => simpleBarSettingsRef.current.barStyle = e.target.value}>
-                            <option value="top">Top</option>
-                            <option value="bottom">Bottom</option>
-                            <option value="both">Both</option>
-                        </select>
-                    </label>
-                    <label>
-                        Spacing:
-                        <input type="number" defaultValue={simpleBarSettingsRef.current.spacing}
-                               onChange={e => simpleBarSettingsRef.current.spacing = parseInt(e.target.value)}/>
-                    </label>
-                    <label>
-                        Bar Width:
-                        <input type="number" defaultValue={simpleBarSettingsRef.current.barWidth}
-                               onChange={e => simpleBarSettingsRef.current.barWidth = parseInt(e.target.value)}/>
-                    </label>
-                    <label>
-                        Beat Multiplier:
-                        <input type="number" defaultValue={simpleBarSettingsRef.current.beatMultiplier}
-                               onChange={e => simpleBarSettingsRef.current.beatMultiplier = parseFloat(e.target.value)}/>
-                    </label>
-                    <label>
-                        Bar Color:
-                        <input type="color" defaultValue={simpleBarSettingsRef.current.barColor}
-                               onChange={e => simpleBarSettingsRef.current.barColor = e.target.value}/>
-                    </label>
-                    <label>
-                        Number of Bars:
-                        <input type="number" defaultValue={simpleBarSettingsRef.current.numBars}
-                               onChange={e => simpleBarSettingsRef.current.numBars = parseInt(e.target.value)}/>
-                    </label>
-                    <label>
-                        Use Full Width:
-                        <input type="checkbox"
-                               defaultChecked={simpleBarSettingsRef.current.useFullWidth}
-                               onChange={e => simpleBarSettingsRef.current.useFullWidth = e.target.checked}/>
-                    </label>
-
-                    <label>
-                        X Position (%):
-                        <input
-                            type="range"
-                            min="0"
-                            max="100"
-                            defaultValue={simpleBarSettingsRef.current.xPos}
-                            onChange={e => simpleBarSettingsRef.current.xPos = parseInt(e.target.value)}
-                        />
-                        {simpleBarSettingsRef.current.xPos}%
-                    </label>
-
-                    <label>
-                        Y Position (%):
-                        <input
-                            type="range"
-                            min="0"
-                            max="100"
-                            defaultValue={simpleBarSettingsRef.current.yPos}
-                            onChange={e => simpleBarSettingsRef.current.yPos = parseInt(e.target.value)}
-                        />
-                        {simpleBarSettingsRef.current.yPos}%
-                    </label>
-                </div>
-            )}
-
-
-            <div className="group-header" onClick={() => toggleSettings("background")}>
-                Background settings
-            </div>
-            {settingsVisibility.background && (
-                <div className="settings-group">
-                    <label>
-                        Type:
-                        <select value={backgroundType} onChange={handleChange}>
-                            <option value="color">Color</option>
-                            <option value="image">Image</option>
-                        </select>
-                    </label>
-
-                    {backgroundType === 'color' && (
-                        <label>
-                            Color:
-                            <input type="color" value={backgroundSettingsRef.current.backgroundColor}
-                                   onChange={e => backgroundSettingsRef.current.backgroundColor = e.target.value}/>
-                        </label>
-                    )}
-
-                    {backgroundType === 'image' && (
-                        <label>
-                            Image:
-                            <input type="file" onChange={handleBackgroundImageChange} accept="image/*"/>
-                        </label>
-                    )}
-
-
-                    <label>
-                        Shake intensity:
-                        <input type="number" defaultValue={backgroundSettingsRef.current.shakeIntensity}
-                               onChange={e => backgroundSettingsRef.current.shakeIntensity = parseFloat(e.target.value)}/>
-                    </label>
-
-                </div>
-            )}
-
-
-            {/* Repeat for other groups as needed */}
-
-
-            <div className="visuals-settings">
-                <label>
-                    Enable Simple Bar:
-                    <input
-                        type="checkbox"
-                        defaultChecked={enableVisualsSettingsRef.current.simpleBar}
-                        onChange={(e) => enableVisualsSettingsRef.current.simpleBar = e.target.checked}
-                    />
-                </label>
-
-                <label>
-                    Enable Circle Bar:
-                    <input
-                        type="checkbox"
-                        defaultChecked={enableVisualsSettingsRef.current.circleBar}
-                        onChange={(e) => enableVisualsSettingsRef.current.circleBar = e.target.checked}
-                    />
-                </label>
-
-                <label>
-                    Enable Background Circles:
-                    <input
-                        type="checkbox"
-                        defaultChecked={enableVisualsSettingsRef.current.backgroundCircles}
-                        onChange={(e) => enableVisualsSettingsRef.current.backgroundCircles = e.target.checked}
-                    />
-                </label>
-
-                <label>
-                    Enable Text:
-                    <input
-                        type="checkbox"
-                        defaultChecked={enableVisualsSettingsRef.current.text}
-                        onChange={(e) => enableVisualsSettingsRef.current.text = e.target.checked}
-                    />
-                </label>
-            </div>
-
-
-            <canvas ref={canvasRef} style={{width: "80%", height: "auto"}} width="1920" height="1080"></canvas>
-            <audio ref={audioRef} crossOrigin="anonymous"/>
         </div>
-
     );
-
-
-};
-
-
-export default App;
+}
