@@ -32,6 +32,7 @@ const SPEC_LABELS: Record<SpectrumStyle, string> = {
     'linear-wave': 'Mountain wave',
     oscilloscope: 'Oscilloscope',
     'circle-scope': 'Circular scope',
+    terrain: '3D terrain',
     none: 'Off',
 };
 
@@ -324,6 +325,8 @@ export function ScenePanel() {
                 <Slider label="Smoke" path="overlays.smoke" />
                 <Slider label="Fire & pyro" path="overlays.fire" hint="Flames at the bottom; pyro jets fire on kicks" />
                 {fire > 0 && <Slider label="Flame height" path="overlays.fireHeight" />}
+                <Slider label="God rays" path="overlays.rays" hint="Light rays streaming from the centre, brighter on kicks" />
+                <Slider label="Lightning" path="overlays.lightning" hint="Lightning strikes on every drop and on some big kicks" />
                 <Slider label="Festival crowd" path="overlays.crowd" hint="Backlit crowd silhouettes in the foreground; people jump on the kicks" />
                 {crowd > 0 && <Slider label="Crowd height" path="overlays.crowdHeight" />}
             </Section>
@@ -374,6 +377,7 @@ export function ElementsPanel() {
                             ]}
                         />
                         <Slider label="Kick bounce" path="spectrum.kickScale" min={0} max={1.5} />
+                        {radial && <Slider label="Kick echo" path="spectrum.echo" hint="Copies of the spectrum fly outward as rings on each kick" />}
                         <Slider label="Opacity" path="spectrum.opacity" />
                     </>
                 )}
@@ -407,6 +411,7 @@ export function ElementsPanel() {
                         <Slider label="Ring" path="center.ring" />
                         <Slider label="Ring glow" path="center.ringGlow" />
                         <Slider label="Shock rings" path="center.shockRings" hint="Rings that fly out on each kick" />
+                        <Slider label="Jelly wobble" path="center.wobble" hint="Squash and stretch on each kick" />
                         <Slider label="Spin" path="center.spin" min={-1} max={1} />
                         <Slider label="Position X" path="center.x" min={-1} max={1} />
                         <Slider label="Position Y" path="center.y" min={-1} max={1} />
@@ -428,6 +433,7 @@ export function ElementsPanel() {
                         <Slider label="Speed" path="particles.speed" />
                         <Slider label="Kick boost" path="particles.kickBoost" min={0} max={1.5} />
                         <Slider label="Opacity" path="particles.opacity" />
+                        <Toggle label="Drop burst" path="particles.dropBurst" hint="An explosion of sparks on every drop" />
                         <Segmented
                             label="Colour"
                             path="particles.colorMode"
@@ -545,6 +551,19 @@ export function TextPanel() {
                         <Slider label="Glow" path="text.glow" />
                         <Slider label="Kick pulse" path="text.pulse" />
                         <Slider label="Glitch" path="text.glitch" />
+                        <Select
+                            label="Letter animation"
+                            path="text.anim"
+                            options={[
+                                { value: 'none', label: 'None' },
+                                { value: 'bounce', label: 'Bounce on kicks' },
+                                { value: 'wave', label: 'Wave' },
+                                { value: 'jitter', label: 'Jitter' },
+                                { value: 'flicker', label: 'Neon flicker' },
+                                { value: 'explode', label: 'Explode on drops' },
+                            ]}
+                        />
+                        <Slider label="Animation amount" path="text.animAmount" />
                         <Slider label="Intro title card" path="text.intro" min={0} max={10} step={0.5} unit=" s" hint="Shows the title big in the centre at the start of the video, then glides it into place (0 = off)" />
                     </>
                 )}
@@ -647,6 +666,7 @@ export function FxPanel() {
             <Section title="Impact">
                 <Slider label="Camera shake" path="fx.shake" />
                 <Slider label="Zoom punch" path="fx.zoomPunch" />
+                <Slider label="Zoom blur" path="fx.zoomBlur" hint="Radial motion blur on kicks and drops" />
                 <Slider label="Shockwave" path="fx.shockwave" hint="Screen ripple on each kick" />
                 <Slider label="Flash" path="fx.flash" hint="Light flash on kicks and drops" />
                 <Slider label="Strobe" path="fx.strobe" hint="Flashes on every beat during drops" />
@@ -654,6 +674,8 @@ export function FxPanel() {
                 <Slider label="Breakdown calm" path="fx.dynamics" hint="How much calmer breakdowns are than drops (uses the detected intensity)" />
                 <Slider label="Build-up tension" path="fx.buildBoost" hint="Extra shake and zoom ramping into each drop" />
                 <Slider label="Camera cuts" path="fx.cuts" hint="Jumps to a new camera angle on every bar during intense parts, like a VJ edit" />
+                <Slider label="Camera drift" path="fx.drift" hint="Slow, living camera motion" />
+                <Slider label="Breakdown blur" path="fx.dreamy" hint="Soft focus in breakdowns that sharpens through the build-up into the drop" />
             </Section>
             <Section title="Glow & colour">
                 <Slider label="Bloom" path="fx.bloom" min={0} max={1.5} />

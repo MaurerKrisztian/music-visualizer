@@ -7,6 +7,8 @@ uniform float uSpPeaks;
 uniform float uSpecBars;
 uniform float uSpecRow;
 uniform float uSpecHist;
+uniform float uSpecPhase;
+uniform float uSpEcho;
 uniform sampler2D uWave;
 uniform int uStyle;
 uniform vec2 uSpCenter;
@@ -111,7 +113,7 @@ vec4 radialWave(vec2 p) {
     for (int L = 7; L >= 0; L--) {
         if (L >= layers) continue;
         float fl = float(L);
-        float v = specSmooth(x, fl * 2.0);
+        float v = specSmooth(x, fl);
         float rc = uSpRadius + uSpHeight * pow(v, 1.25) * (1.0 + fl * 0.07) + uSpThick;
         float inside = smoothstep(rc + aa, rc - aa, r) * smoothstep(uSpRadius * 0.6, uSpRadius * 0.9, r);
         vec3 lc = layers == 1 ? spColor(x, v) : pal(fl / max(float(layers), 1.0) * 0.85 + 0.05);
@@ -176,7 +178,7 @@ vec4 linearWave(vec2 p) {
         if (L >= layers) continue;
         float fl = float(L);
         float sx = uSpMirror > 0.5 ? 1.0 - bx : bx;
-        float v = specSmooth(sx, fl * 2.0) * edgeFade;
+        float v = specSmooth(sx, fl) * edgeFade;
         float h = uSpHeight * pow(v, 1.2) * (1.0 + fl * 0.08) + uSpThick;
         float y = abs(q.y);
         float inside = smoothstep(h + aa, h - aa, y) * (q.y >= 0.0 ? 1.0 : 0.3);
@@ -239,6 +241,70 @@ vec4 circleScope(vec2 p) {
     return vec4(col, alpha);
 }
 
+
+// 3D landscape of the last second of spectrum frames, scrolling away from the viewer.
+vec4 terrain(vec2 p) {
+    vec2 hs = halfSize();
+    float W = uSpWidth * hs.x * 2.0;
+    vec2 q = p - uSpCenter;
+    float aa = px() * 1.2;
+    const int N = 40;
+    const float SPAN = 5.0;
+    float rise = uSpHeight * 2.4;
+    float backSc = 1.0 / (1.0 + SPAN);
+    for (int k = 0; k < N; k++) {
+        float fk = (float(k) + uSpecPhase) / float(N);
+        float sc = 1.0 / (1.0 + fk * SPAN);
+        float yBase = rise * (1.0 - sc) / (1.0 - backSc);
+        float xr = q.x / (W * sc) + 0.5;
+        if (xr < 0.0 || xr > 1.0) continue;
+        if (q.y < yBase - 0.002) continue;
+        float sx = uSpMirror > 0.5 ? 1.0 - abs(xr - 0.5) * 2.0 : xr;
+        float env = smoothstep(0.0, 0.14, xr) * smoothstep(1.0, 0.86, xr);
+        float v = specSmooth(sx, float(k));
+        float yLine = yBase + uSpHeight * sc * 1.5 * pow(v, 1.25) * env;
+        float dy = q.y - yLine;
+        float thick = (uSpThick * 0.6 + 0.0012) * (0.35 + 0.65 * sc);
+        float fade = (1.0 - fk) * (0.55 + 0.45 * sc);
+        float line = smoothstep(thick + aa, thick - aa, abs(dy));
+        if (line > 0.01 || dy < 0.0) {
+            vec3 c = spColor(sx, v) * (0.6 + 0.9 * v);
+            // the body below a ridge is a dark, nearly opaque fill that hides what is behind
+            float body = dy < 0.0 ? 1.0 : 0.0;
+            float bodyA = body * 0.94 * smoothstep(0.0, 0.06, 1.0 - fk);
+            vec3 bodyCol = c * 0.035 * bodyA;
+            float la = line * fade;
+            return vec4(mix(bodyCol, c * fade * 1.3, la), max(bodyA, la));
+        }
+        // soft neon glow above the ridge (additive: alpha 0)
+        if (q.y > yLine && q.y < yLine + 0.02) {
+            float g = exp(-(q.y - yLine) / (thick * 4.0)) * 0.3 * fade;
+            if (g > 0.003) return vec4(spColor(sx, v) * g, 0.0);
+        }
+    }
+    return vec4(0.0);
+}
+
+// Copies of the radial spectrum that fly outward on each kick.
+vec3 echoRings(vec2 p) {
+    vec2 q = rot(-uSpRot) * (p - uSpCenter);
+    float r = length(q);
+    float ang = atan(q.x, q.y);
+    float x = uSpMirror > 0.5 ? abs(ang) / PI : ang / TAU + 0.5;
+    vec3 col = vec3(0.0);
+    for (int k = 0; k < 3; k++) {
+        float age = uKickAge[k];
+        if (age > 0.75) continue;
+        float back = min(age * 40.0, uSpecHist - 4.0);
+        float v = specSmooth(x, back);
+        float rc = (uSpRadius + uSpHeight * pow(v, 1.25) + uSpThick) * (1.0 + age * 1.5);
+        float w = 0.0015 + age * 0.006;
+        float a = uKickStr[k] * exp(-age * 3.6) * uSpEcho;
+        col += spColor(x, v) * (smoothstep(w + px(), 0.0, abs(r - rc)) + exp(-abs(r - rc) / (w * 4.0)) * 0.3) * a * 1.4;
+    }
+    return col;
+}
+
 void main() {
     vec2 p = centered(vUv);
     vec4 c = vec4(0.0);
@@ -248,6 +314,8 @@ void main() {
     else if (uStyle == 3) c = linearWave(p);
     else if (uStyle == 4) c = oscilloscope(p);
     else if (uStyle == 5) c = circleScope(p);
+    else if (uStyle == 6) { outColor = terrain(p) * uSpOpacity; return; }
+    if (uSpEcho > 0.001 && (uStyle == 0 || uStyle == 1 || uStyle == 5)) c.rgb += echoRings(p);
     outColor = vec4(c.rgb * uSpOpacity, c.a * uSpOpacity);
 }`;
 
@@ -263,6 +331,8 @@ uniform float uCtrSpin;
 uniform float uShockRings;
 uniform float uShape;
 uniform float uVinylSpin;
+uniform vec2 uJelly;
+uniform float uJellyRot;
 
 vec3 logoSample(vec2 lq, float halfSize) {
     float ia = uLogoSize.x / max(uLogoSize.y, 1.0);
@@ -285,7 +355,7 @@ vec3 emblem(vec2 q, float R) {
 
 void main() {
     vec2 p = centered(vUv);
-    vec2 q = p - uCtr;
+    vec2 q = rot(uJellyRot) * (p - uCtr) / uJelly;
     float r = length(q);
     float aa = px() * 1.2;
     float R = uCtrR;
@@ -355,6 +425,74 @@ uniform float uTextScale;
 uniform float uGlitchT;
 uniform float uGlitchSeed;
 uniform float uTextAlpha;
+uniform int uAnim;
+uniform float uAnimAmt;
+uniform vec4 uGlyphA[64];
+uniform vec4 uGlyphB[64];
+uniform int uGlyphCount;
+uniform vec2 uTexPx;
+uniform float uLineH;
+uniform float uReveal;
+uniform float uDropB;
+
+// Per-letter animation: offset in texture pixels (y down), scale, angle, alpha.
+void glyphAnim(int i, out vec2 off, out float sc, out float ang, out float alpha) {
+    vec4 b = uGlyphB[i];
+    float ci = b.x;
+    float n = max(b.z, 1.0);
+    float sd = b.w;
+    float A = uAnimAmt;
+    float H = uLineH;
+    off = vec2(0.0);
+    sc = 1.0;
+    ang = 0.0;
+    alpha = 1.0;
+    if (uAnim == 1) {
+        // wave riding the bar
+        off.y = -A * 0.24 * H * sin(TAU * (uBar * 2.0 - ci / n * 0.85));
+        ang = A * 0.06 * cos(TAU * (uBar * 2.0 - ci / n * 0.85));
+    } else if (uAnim == 2) {
+        // each kick sends a hop through the word
+        float hop = 0.0;
+        for (int k = 0; k < 4; k++) {
+            float a = uKickAge[k] - ci * 0.024;
+            if (a > 0.0 && a < 0.26) hop = max(hop, uKickStr[k] * sin(a / 0.26 * PI));
+        }
+        off.y = -A * 0.45 * H * hop;
+        sc = 1.0 + A * 0.14 * hop;
+    } else if (uAnim == 3) {
+        // aggressive jitter, louder on kicks
+        float fr = floor(uTime * 24.0);
+        vec2 r = hash22(vec2(sd * 91.0, fr)) - 0.5;
+        off = r * A * H * (0.04 + 0.32 * uKick);
+        ang = (hash21(vec2(sd * 17.0, fr)) - 0.5) * A * 0.5 * uKick;
+    } else if (uAnim == 4) {
+        // neon sign: random letters flicker, kicks power it up
+        float fr = floor(uTime * 15.0);
+        float h = hash21(vec2(sd * 37.0, fr));
+        float faulty = step(0.78, hash11(sd * 13.0));
+        float on = step(0.2 + 0.55 * faulty, h) * (0.6 + 0.4 * h);
+        alpha = mix(1.0, on, A * (0.35 + 0.65 * faulty));
+        alpha = max(alpha, uKick * 0.95);
+    } else if (uAnim == 5) {
+        // letters fly apart on drops and snap back
+        vec2 dir = normalize(hash22(vec2(sd * 7.0, 3.0)) - 0.5 + 1e-4);
+        float e = uDropB;
+        off = dir * A * H * 2.4 * e;
+        ang = (hash11(sd * 23.0) - 0.5) * 3.2 * A * e;
+        sc = 1.0 + 0.35 * A * e;
+        float hop = uKickStr[0] * max(0.0, 1.0 - uKickAge[0] / 0.2);
+        off.y -= A * 0.16 * H * hop;
+    }
+    if (uReveal < 1.0) {
+        float idx = float(i) / max(float(uGlyphCount), 1.0);
+        float rv = clamp((uReveal * 1.35 - idx) * 5.0, 0.0, 1.0);
+        alpha *= rv;
+        sc *= 0.55 + 0.45 * rv + 0.28 * sin(rv * PI);
+        off.y += (1.0 - rv) * H * 0.35;
+    }
+}
+
 void main() {
     vec2 p = centered(vUv);
     vec2 q = (p - uTextPos) / uTextScale;
@@ -365,13 +503,38 @@ void main() {
         float h = hash21(vec2(row, seed));
         if (h < uGlitchT * 0.6) tuv.x += (hash21(vec2(row + 3.1, seed)) - 0.5) * 0.12 * uGlitchT;
     }
-    if (tuv.x < 0.0 || tuv.x > 1.0 || tuv.y < 0.0 || tuv.y > 1.0) { outColor = vec4(0.0); return; }
-    tuv.y = 1.0 - tuv.y;
-    vec4 c = texture(uTextTex, tuv);
+    bool animated = uGlyphCount > 0 && (uAnim > 0 || uReveal < 1.0);
+    float lim = animated ? 0.75 : 0.0;
+    if (tuv.x < -lim || tuv.x > 1.0 + lim || tuv.y < -lim || tuv.y > 1.0 + lim) { outColor = vec4(0.0); return; }
+    vec2 cuv = vec2(tuv.x, 1.0 - tuv.y);
+    if (animated) {
+        vec2 P = cuv * uTexPx;
+        vec4 c = vec4(0.0);
+        for (int i = 0; i < 64; i++) {
+            if (i >= uGlyphCount) break;
+            vec4 a = uGlyphA[i];
+            vec2 lo = a.xz * uTexPx;
+            vec2 hi = a.yw * uTexPx;
+            vec2 ctr = (lo + hi) * 0.5;
+            vec2 off;
+            float sc;
+            float ang;
+            float al;
+            glyphAnim(i, off, sc, ang, al);
+            if (al <= 0.001) continue;
+            vec2 L = ctr + rot(-ang) * (P - ctr - off) / max(sc, 0.05);
+            if (L.x < lo.x || L.x > hi.x || L.y < lo.y || L.y > hi.y) continue;
+            vec4 g = texture(uTextTex, L / uTexPx) * al;
+            if (g.a > c.a) c = g;
+        }
+        outColor = c * uTextAlpha;
+        return;
+    }
+    vec4 c = texture(uTextTex, cuv);
     float split = uGlitchT * 0.012;
     if (split > 0.0005) {
-        float aR = texture(uTextTex, tuv + vec2(split, 0.0)).a;
-        float aB = texture(uTextTex, tuv - vec2(split, 0.0)).a;
+        float aR = texture(uTextTex, cuv + vec2(split, 0.0)).a;
+        float aB = texture(uTextTex, cuv - vec2(split, 0.0)).a;
         vec3 fr = vec3(1.0, 0.1, 0.25) * aR * (1.0 - c.a);
         vec3 fb = vec3(0.1, 0.6, 1.0) * aB * (1.0 - c.a);
         outColor = vec4(c.rgb + (fr + fb) * 0.8, max(c.a, max(aR, aB) * 0.6)) * uTextAlpha;
@@ -496,19 +659,29 @@ out vec2 vLocal;
 out float vAlpha;
 out float vColT;
 out float vStretch;
+out float vShape;
 void main() {
     vec2 dir = length(aB.xy) > 1e-6 ? normalize(aB.xy) : vec2(1.0, 0.0);
     vec2 nrm = vec2(-dir.y, dir.x);
     float size = aA.z;
+    float shape = floor(aB.w / 10.0);
     float stretch = aB.z;
-    vec2 off = dir * aCorner.x * size * (1.0 + stretch) + nrm * aCorner.y * size;
+    vec2 off;
+    if (shape > 0.5) {
+        // confetti: a rectangle that flips (stretch = |cos(flip)|)
+        off = dir * aCorner.x * size * 1.5 + nrm * aCorner.y * size * max(0.12, stretch);
+        vStretch = 0.0;
+    } else {
+        off = dir * aCorner.x * size * (1.0 + stretch) + nrm * aCorner.y * size;
+        vStretch = stretch;
+    }
     vec2 pos = aA.xy + off;
     vec2 hs = 0.5 * uRes / min(uRes.x, uRes.y);
     gl_Position = vec4(pos / hs, 0.0, 1.0);
     vLocal = aCorner;
     vAlpha = aA.w;
-    vColT = aB.w;
-    vStretch = stretch;
+    vColT = aB.w - shape * 10.0;
+    vShape = shape;
 }`;
 
 export const PARTICLE_FS = `#version 300 es
@@ -517,6 +690,7 @@ in vec2 vLocal;
 in float vAlpha;
 in float vColT;
 in float vStretch;
+in float vShape;
 out vec4 outColor;
 uniform vec3 uColA;
 uniform vec3 uColB;
@@ -530,7 +704,9 @@ void main() {
     float x = vLocal.x;
     float y = vLocal.y;
     float shape;
-    if (vStretch > 0.05) {
+    if (vShape > 0.5) {
+        shape = smoothstep(1.0, 0.78, max(abs(x), abs(y)));
+    } else if (vStretch > 0.05) {
         float along = smoothstep(-1.0, 0.6, x) * smoothstep(1.0, 0.7, x);
         shape = exp(-y * y * 5.0) * along;
     } else {
@@ -543,7 +719,7 @@ void main() {
     else {
         float t = fract(vColT) * 3.0;
         c = t < 1.0 ? mix(uColA, uColB, t) : t < 2.0 ? mix(uColB, uColC, t - 1.0) : mix(uColC, uColA, t - 2.0);
-        c = mix(c, vec3(1.0), 0.25);
+        c = mix(c, vec3(1.0), vShape > 0.5 ? 0.04 : 0.25);
     }
     float a = shape * vAlpha;
     outColor = vec4(c * a, 0.0);

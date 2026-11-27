@@ -23,17 +23,28 @@ export function Transport() {
     const ledRef = useRef<HTMLSpanElement>(null);
     const beatRef = useRef<HTMLSpanElement>(null);
     const secRef = useRef<HTMLSpanElement>(null);
+    const playRef = useRef<HTMLButtonElement>(null);
     const [vol, setVol] = useState(0.9);
 
     useEffect(() => {
         let raf = 0;
+        let lastSection = '';
         const tick = () => {
             raf = requestAnimationFrame(tick);
+            if (playRef.current) playRef.current.style.setProperty('--k', live.kick.toFixed(3));
             const t = player.playing ? live.time : player.currentTime;
             if (timeRef.current) timeRef.current.textContent = formatTime(t, true);
             if (ledRef.current) ledRef.current.style.opacity = String(0.15 + 0.85 * live.kick);
             if (beatRef.current) beatRef.current.style.transform = `scaleX(${live.beatPhase.toFixed(3)})`;
-            if (secRef.current) secRef.current.textContent = SECTION_LABEL[live.section] ?? '';
+            if (secRef.current && live.section !== lastSection) {
+                lastSection = live.section;
+                const el = secRef.current;
+                el.textContent = SECTION_LABEL[live.section] ?? '';
+                el.classList.toggle('hot', live.section === 'drop');
+                el.classList.remove('flash');
+                void el.offsetWidth;
+                if (live.section === 'drop' || live.section === 'build') el.classList.add('flash');
+            }
         };
         raf = requestAnimationFrame(tick);
         return () => cancelAnimationFrame(raf);
@@ -41,7 +52,7 @@ export function Transport() {
 
     return (
         <div className="transport">
-            <button className="play" onClick={() => void togglePlay()} disabled={!ready} title="Play / pause (Space)">
+            <button ref={playRef} className="play" onClick={() => void togglePlay()} disabled={!ready} title="Play / pause (Space)">
                 {playing ? <IconPause /> : <IconPlay />}
             </button>
             <div className="time">

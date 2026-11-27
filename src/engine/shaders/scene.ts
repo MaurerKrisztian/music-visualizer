@@ -422,11 +422,59 @@ uniform float uFireAmt;
 uniform float uFireH;
 uniform float uLaserAmt;
 uniform float uSmokeAmt;
+uniform float uRaysAmt;
+uniform vec2 uRaysCenter;
+uniform float uBoltAmt;
+uniform float uBoltAge;
+uniform float uBoltSeed;
+
+vec3 godRays(vec2 p) {
+    vec2 d = p - uRaysCenter;
+    float r = length(d);
+    float a = atan(d.y, d.x);
+    float rays = pow(0.5 + 0.5 * sin(a * 14.0 + uSpin * 0.5), 7.0) * 0.7
+               + pow(0.5 + 0.5 * sin(a * 23.0 - uSpin * 0.35 + 1.7), 12.0) * 0.6;
+    float haze = 0.55 + 0.45 * fbm3(vec2(a * 2.5, r * 3.0 - uTime * 0.4));
+    float fall = exp(-r * 1.5) * smoothstep(0.03, 0.2, r);
+    vec3 c = mix(pal(a / TAU + uTime * 0.02), vec3(1.0), 0.25);
+    return c * rays * haze * fall * (0.3 + 0.7 * uKick + 0.4 * uDrop + 0.3 * uBuild);
+}
+
+float boltDist(vec2 p, float seed, float x0, float x1, float yTop, float yBot) {
+    float t = clamp((yTop - p.y) / max(yTop - yBot, 1e-3), 0.0, 1.0);
+    float xm = mix(x0, x1, t)
+             + (fbm3(vec2(t * 6.0, seed * 7.13)) - 0.5) * 0.3
+             + (vnoise(vec2(t * 48.0, seed * 3.1)) - 0.5) * 0.035;
+    float inside = step(yBot, p.y) * step(p.y, yTop);
+    return mix(1e3, abs(p.x - xm), inside);
+}
+
+vec3 lightning(vec2 p) {
+    if (uBoltAge > 0.3) return vec3(0.0);
+    vec2 hs = halfSize();
+    float s = uBoltSeed;
+    float x0 = (hash11(s) - 0.5) * hs.x * 1.5;
+    float x1 = x0 + (hash11(s + 1.3) - 0.5) * hs.x * 0.9;
+    float d = boltDist(p, s, x0, x1, hs.y + 0.05, -hs.y * 0.35);
+    // a branch splitting off half way down
+    float bx0 = mix(x0, x1, 0.45);
+    float d2 = boltDist(p, s + 9.1, bx0, bx0 + (hash11(s + 4.2) - 0.5) * 0.7, hs.y * 0.1, -hs.y * 0.6);
+    float core = exp(-d / 0.002) + 0.6 * exp(-d2 / 0.0015);
+    float glow = exp(-d / 0.03) * 0.35 + exp(-d2 / 0.025) * 0.2;
+    // always lit for the first frames of a strike, then it flickers
+    float flick = uBoltAge < 0.05 ? 1.0 : step(0.3, hash11(floor(uBoltAge * 50.0) + s * 3.0));
+    float fade = exp(-uBoltAge / 0.09);
+    vec3 c = mix(vec3(0.75, 0.85, 1.0), uColA, 0.25);
+    return c * ((core + glow) * flick + 0.06) * fade;
+}
+
 void main() {
     vec2 p = centered(vUv);
     vec3 col = vec3(0.0);
     if (uSmokeAmt > 0.001) col += smoke(p, uSmokeAmt);
+    if (uRaysAmt > 0.001) col += godRays(p) * uRaysAmt;
     if (uLaserAmt > 0.001) col += lasers(p, 8.0, 1.3, uLaserAmt);
     if (uFireAmt > 0.001) col += fire(p, uFireH, uFireAmt);
+    if (uBoltAmt > 0.001) col += lightning(p) * uBoltAmt;
     outColor = vec4(col, 0.0);
 }`;

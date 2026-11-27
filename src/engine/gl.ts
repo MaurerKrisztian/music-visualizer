@@ -78,6 +78,12 @@ export class Program {
         return this;
     }
 
+    v4arr(name: string, data: Float32Array): this {
+        const l = this.loc(name);
+        if (l) this.gl.uniform4fv(l, data);
+        return this;
+    }
+
     tex(name: string, texture: WebGLTexture | null): this {
         const l = this.loc(name);
         if (!l) return this;

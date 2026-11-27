@@ -11,7 +11,7 @@ import { MAX_PARTICLES, ParticleSystem, PARTICLE_STRIDE } from './particles';
 import { CENTER_SHADER, CROWD_SHADER, IMAGE_SHADER, PARTICLE_FS, PARTICLE_VS, PROGRESS_SHADER, SPECTRUM_SHADER, TEXT_SHADER } from './shaders/layers';
 import { COPY_SHADER, DOWN_SHADER, FEEDBACK_SHADER, FINAL_SHADER, STREAK_SHADER, UP_SHADER } from './shaders/post';
 import { backgroundShader, OVERLAY_SHADER } from './shaders/scene';
-import { TextRenderer } from './text';
+import { TextRenderer, type Glyphs } from './text';
 import { activeCue } from '../project/lyrics';
 
 export interface ImageSource {
@@ -44,7 +44,9 @@ export interface EngineOptions {
     fontsVersion?: () => number;
 }
 
-const SPEC_HIST = 32;
+const SPEC_HIST = 64;
+/** history rows per second (frame-rate independent scrolling) */
+const SPEC_RATE = 40;
 const BLOOM_LEVELS = 6;
 const STYLE_INDEX: Record<string, number> = {
     'radial-bars': 0,
@@ -53,8 +55,10 @@ const STYLE_INDEX: Record<string, number> = {
     'linear-wave': 3,
     oscilloscope: 4,
     'circle-scope': 5,
+    terrain: 6,
 };
 const COLOR_INDEX: Record<string, number> = { palette: 0, reactive: 1, rainbow: 2, mono: 3 };
+const ANIM_INDEX: Record<string, number> = { none: 0, wave: 1, bounce: 2, jitter: 3, flicker: 4, explode: 5 };
 
 interface CachedImage {
     tex: WebGLTexture;
@@ -74,6 +78,7 @@ export class Engine {
     private readonly bg2: RenderTarget;
     private readonly flareA: RenderTarget;
     private readonly flareB: RenderTarget;
+    private readonly dof: RenderTarget[] = [];
     private readonly bloom: RenderTarget[] = [];
     private readonly bgPrograms = new Map<BackgroundMode, Program>();
     private readonly progs: Record<string, Program> = {};
@@ -81,6 +86,7 @@ export class Engine {
     private peakTex: WebGLTexture;
     private specBars = 0;
     private specRow = 0;
+    private specAcc = 0;
     private readonly waveTex: WebGLTexture;
     private readonly waveData = new Float32Array(WAVE_POINTS * 2);
     private readonly particles = new ParticleSystem();
@@ -91,6 +97,7 @@ export class Engine {
     private readonly blackTex: WebGLTexture;
     private fbValid = false;
     private flareOut: RenderTarget | null = null;
+    private boltFlash = 0;
     private lost = false;
 
     constructor(readonly canvas: HTMLCanvasElement | OffscreenCanvas, private readonly opts: EngineOptions = {}) {
@@ -121,6 +128,7 @@ export class Engine {
         this.bg2 = new RenderTarget(gl, fmt, 4, 4);
         this.flareA = new RenderTarget(gl, fmt, 4, 4);
         this.flareB = new RenderTarget(gl, fmt, 4, 4);
+        for (let i = 0; i < 3; i++) this.dof.push(new RenderTarget(gl, fmt, 4, 4));
         for (let i = 0; i < BLOOM_LEVELS; i++) this.bloom.push(new RenderTarget(gl, fmt, 4, 4));
 
         const mk = (name: string, fs: string, vs = FULLSCREEN_VS) => (this.progs[name] = new Program(gl, vs, fs, name));
@@ -188,6 +196,7 @@ export class Engine {
         this.bg2.resize(w, h);
         this.flareA.resize(Math.max(1, Math.floor(w / 4)), Math.max(1, Math.floor(h / 2)));
         this.flareB.resize(Math.max(1, Math.floor(w / 4)), Math.max(1, Math.floor(h / 2)));
+        this.dof.forEach((d, i) => d.resize(Math.max(1, Math.floor(w / (2 << i))), Math.max(1, Math.floor(h / (2 << i)))));
         let bw = w;
         let bh = h;
         for (const b of this.bloom) {
@@ -202,6 +211,7 @@ export class Engine {
     reset(seed = 1): void {
         this.particles.reset(seed);
         this.fbValid = false;
+        this.specAcc = 0;
     }
 
     private bgProgram(mode: BackgroundMode): Program {
@@ -243,7 +253,7 @@ export class Engine {
         return c;
     }
 
-    private uploadSpectrum(f: Features, advance: boolean): void {
+    private uploadSpectrum(f: Features, dt: number): void {
         const gl = this.gl;
         const bars = f.spectrum.length;
         if (bars !== this.specBars) {
@@ -256,13 +266,38 @@ export class Engine {
         }
         gl.bindTexture(gl.TEXTURE_2D, this.peakTex);
         gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, bars, 1, gl.RED, gl.FLOAT, f.peaks);
-        if (advance) this.specRow = (this.specRow + 1) % SPEC_HIST;
         gl.bindTexture(gl.TEXTURE_2D, this.specTex);
+        if (dt > 0) {
+            this.specAcc += dt * SPEC_RATE;
+            let n = 0;
+            while (this.specAcc >= 1 && n < SPEC_HIST) {
+                this.specAcc -= 1;
+                this.specRow = (this.specRow + 1) % SPEC_HIST;
+                gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, this.specRow, bars, 1, gl.RED, gl.FLOAT, f.spectrum);
+                n++;
+            }
+            this.specAcc = Math.min(this.specAcc, 0.999);
+        }
+        // the newest row is always live
         gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, this.specRow, bars, 1, gl.RED, gl.FLOAT, f.spectrum);
         this.waveData.set(f.wave, 0);
         this.waveData.set(f.waveR, WAVE_POINTS);
         gl.bindTexture(gl.TEXTURE_2D, this.waveTex);
         gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, WAVE_POINTS, 2, gl.RED, gl.FLOAT, this.waveData);
+    }
+
+    private glyphUniforms(p: Program, g: Glyphs, anim: string, amount: number, reveal: number, dropB: number): Program {
+        const idx = ANIM_INDEX[anim] ?? 0;
+        return p
+            .i('uAnim', idx)
+            .f('uAnimAmt', amount)
+            .v4arr('uGlyphA', g.a)
+            .v4arr('uGlyphB', g.b)
+            .i('uGlyphCount', idx > 0 || reveal < 1 ? g.count : 0)
+            .v2('uTexPx', g.texW, g.texH)
+            .f('uLineH', g.lineH)
+            .f('uReveal', reveal)
+            .f('uDropB', dropB);
     }
 
     private draw(): void {
@@ -364,7 +399,7 @@ export class Engine {
         const kick = f.kick;
         const k15 = Math.pow(kick, 1.5);
 
-        this.uploadSpectrum(f, dt > 0);
+        this.uploadSpectrum(f, dt);
         gl.disable(gl.DEPTH_TEST);
         gl.disable(gl.CULL_FACE);
 
@@ -397,7 +432,23 @@ export class Engine {
         // ---- 2. overlays (additive) ------------------------------------------------------
         const ov = P.overlays;
 
-        if (ov.fire > 0.001 || ov.lasers > 0.001 || ov.smoke > 0.001) {
+        // lightning: on every drop, and on some big kicks in intense parts
+        let boltAge = 99;
+        let boltSeed = 0;
+        if ((ov.lightning ?? 0) > 0.001) {
+            if (f.dropAge < 0.3) {
+                boltAge = f.dropAge;
+                boltSeed = Math.round((t - f.dropAge) * 10) * 0.173 + 1;
+            } else if (f.kickAge < 0.3 && f.recentKicks[1] > 0.7 && f.intensity > 0.55) {
+                const kickId = Math.round((t - f.kickAge) * 100);
+                if (hash1(kickId * 0.0731) < 0.08 + 0.3 * ov.lightning) {
+                    boltAge = f.kickAge;
+                    boltSeed = kickId * 0.0173 + 2;
+                }
+            }
+        }
+        const rays = ov.rays ?? 0;
+        if (ov.fire > 0.001 || ov.lasers > 0.001 || ov.smoke > 0.001 || rays > 0.001 || boltAge < 0.3) {
             gl.enable(gl.BLEND);
             gl.blendFunc(gl.ONE, gl.ONE);
             const op = this.progs.overlay.use();
@@ -405,9 +456,15 @@ export class Engine {
                 .f('uFireAmt', ov.fire)
                 .f('uFireH', ov.fireHeight)
                 .f('uLaserAmt', ov.lasers * (0.6 + 0.4 * dyn))
-                .f('uSmokeAmt', ov.smoke);
+                .f('uSmokeAmt', ov.smoke)
+                .f('uRaysAmt', rays * (0.5 + 0.5 * dyn))
+                .v2('uRaysCenter', P.center.x * hsx, P.center.y * hsy)
+                .f('uBoltAmt', boltAge < 0.3 ? ov.lightning : 0)
+                .f('uBoltAge', boltAge)
+                .f('uBoltSeed', boltSeed);
             this.draw();
         }
+        this.boltFlash = boltAge < 0.3 ? ov.lightning * Math.exp(-boltAge / 0.06) * (boltAge < 0.05 || hash1(Math.floor(boltAge * 50) + boltSeed) > 0.3 ? 1 : 0.3) : 0;
 
         if (ov.crowd > 0.001) {
             gl.enable(gl.BLEND);
@@ -439,7 +496,7 @@ export class Engine {
         const ctrX = P.center.x * hsx;
         const ctrY = P.center.y * hsy;
         const radialStyle = sp.style.startsWith('radial') || sp.style === 'circle-scope';
-        if (sp.style !== 'none') {
+        const drawSpectrum = () => {
             const kickScale = 1 + sp.kickScale * k15 * 0.12;
             const spg = this.progs.spectrum.use();
             this.common(spg, f, palette, move, spin, W, H)
@@ -449,6 +506,8 @@ export class Engine {
                 .f('uSpecBars', this.specBars)
                 .f('uSpecRow', this.specRow)
                 .f('uSpecHist', SPEC_HIST)
+                .f('uSpecPhase', this.specAcc)
+                .f('uSpEcho', sp.echo ?? 0)
                 .tex('uWave', this.waveTex)
                 .i('uStyle', STYLE_INDEX[sp.style] ?? 0)
                 .v2('uSpCenter', radialStyle ? ctrX : sp.x * hsx, radialStyle ? ctrY : sp.y * hsy)
@@ -463,7 +522,9 @@ export class Engine {
                 .f('uSpOpacity', sp.opacity)
                 .i('uSpColor', COLOR_INDEX[sp.colorMode] ?? 0);
             this.draw();
-        }
+        };
+        const terrainStyle = sp.style === 'terrain';
+        if (sp.style !== 'none' && !terrainStyle) drawSpectrum();
         const pc = P.particles;
         this.particles.update(dt, pc, f, hsx, hsy, ctrX, ctrY, (P.center.enabled ? P.center.radius : sp.radius) * (1 + P.center.kickScale * k15 * 0.12), dyn);
         if (this.particles.count > 0) {
@@ -489,9 +550,49 @@ export class Engine {
         this.fxA = this.fxB;
         this.fxB = tmp;
 
+        // dreamy soft focus in calm parts (behind the logo and text), sharpening into the drop
+        const dofAmt = (fx.dreamy ?? 0) * (1 - f.hot) * (1 - f.build) * 0.85;
+        if (dofAmt > 0.001) {
+            gl.disable(gl.BLEND);
+            let dsrc: RenderTarget = this.scene;
+            for (const d of this.dof) {
+                d.bind();
+                this.progs.down.use().tex('uTex', dsrc.texture).v2('uTexel', 1 / dsrc.width, 1 / dsrc.height).f('uPrefilter', 0).f('uThreshold', 0);
+                this.draw();
+                dsrc = d;
+            }
+            this.scene.bind();
+            gl.enable(gl.BLEND);
+            gl.blendColor(0, 0, 0, dofAmt);
+            gl.blendFunc(gl.CONSTANT_ALPHA, gl.ONE_MINUS_CONSTANT_ALPHA);
+            const last = this.dof[this.dof.length - 1];
+            this.progs.up.use().tex('uTex', last.texture).v2('uTexel', 1 / last.width, 1 / last.height).f('uWeight', 1);
+            this.draw();
+        }
+
+        // terrain is opaque: its mountains hide what is behind them
+        if (terrainStyle) {
+            gl.enable(gl.BLEND);
+            gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+            drawSpectrum();
+        }
+
         // ---- 4. center logo, text, progress (premultiplied over) ---------------------------
         gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
         const ct = P.center;
+        // jelly: a damped squash-and-stretch after each kick
+        let jelly = 0;
+        let jellyRot = 0;
+        const wob = (ct.wobble ?? 0) * dyn;
+        if (wob > 0.001) {
+            for (let k = 0; k < 2; k++) {
+                const age = f.recentKicks[k * 2];
+                const str = f.recentKicks[k * 2 + 1];
+                if (age > 1.2) continue;
+                jelly += wob * str * Math.exp(-age * 6.5) * Math.cos(age * 34);
+                jellyRot += wob * str * 0.05 * Math.exp(-age * 5) * Math.sin(age * 23);
+            }
+        }
         if (ct.enabled) {
             const logo = this.imageTexture(images.logo);
             const cp = this.progs.center.use();
@@ -506,6 +607,8 @@ export class Engine {
                 .f('uCtrSpin', ct.spin * 0.6 * t + Math.sin(t * 2.1) * 0.03 * kick)
                 .f('uShockRings', ct.shockRings * dyn)
                 .f('uShape', ct.shape === 'vinyl' ? 2 : ct.shape === 'square' ? 1 : 0)
+                .v2('uJelly', 1 + jelly * 0.075, 1 - jelly * 0.06)
+                .f('uJellyRot', jellyRot)
                 // 33 1/3 rpm, plus a quick back-spin "scratch" on every drop
                 .f('uVinylSpin', -(t * Math.PI * 2 * 0.5556 + ct.spin * 0.6 * t) + 2.6 * f.drop * Math.exp(-f.dropAge * 2));
             this.draw();
@@ -534,6 +637,7 @@ export class Engine {
                 scale *= big + (1 - big) * e;
                 if (tl < 0.5) glitchT = Math.max(glitchT, (0.5 - tl) * 1.2);
             }
+            const reveal = introLen > 0 && tl >= 0 ? Math.min(1, tl / 1.1) : 1;
             const tp = this.progs.text.use();
             this.common(tp, f, palette, move, spin, W, H)
                 .tex('uTextTex', block.texture)
@@ -543,6 +647,7 @@ export class Engine {
                 .f('uGlitchT', Math.min(1, glitchT))
                 .f('uGlitchSeed', Math.floor(t * 20))
                 .f('uTextAlpha', 1);
+            this.glyphUniforms(tp, block.glyphs, tx.anim ?? 'none', (tx.animAmount ?? 0.5) * (0.4 + 0.6 * dyn), reveal, dropB);
             this.draw();
         }
 
@@ -563,6 +668,8 @@ export class Engine {
                 .f('uGlitchT', Math.max(0, 0.5 - age * 4) + tx.glitch * Math.pow(kick, 4) * 0.4 * dyn)
                 .f('uGlitchSeed', Math.floor(t * 20) + 7)
                 .f('uTextAlpha', Math.max(0, alpha));
+            const dropL = f.dropAge < 50 ? f.drop * Math.exp(-f.dropAge * (1 / 0.28 - 1 / 1.6)) : 0;
+            this.glyphUniforms(lp, lb.glyphs, tx.anim ?? 'none', (tx.animAmount ?? 0.5) * 0.8 * (0.4 + 0.6 * dyn), Math.min(1, age / 0.35), dropL);
             this.draw();
         }
 
@@ -667,6 +774,14 @@ export class Engine {
             cutY = (hash1(b * 0.73 + 11) - 0.5) * 0.04 * cutAmt;
             zoom *= 1 + (0.03 + hash1(b * 1.97 + 5) * 0.1) * cutAmt + Math.abs(cutRot) * 1.1;
         }
+        // living camera: slow drift, plus a roll that builds up into each drop and snaps back on it
+        const drift = fx.drift ?? 0;
+        const driftRot = drift * (0.02 * Math.sin(t * 0.11) + 0.009 * Math.sin(t * 0.27 + 1.3));
+        const buildRoll = fx.buildBoost * Math.pow(f.build, 2.2) * 0.16 * (f.dropCount % 2 === 0 ? 1 : -1);
+        cutRot += driftRot + buildRoll;
+        cutX += drift * 0.012 * Math.sin(t * 0.09 + 2.1);
+        cutY += drift * 0.008 * Math.sin(t * 0.13 + 0.7);
+        zoom *= 1 + drift * (0.02 + 0.015 * Math.sin(t * 0.07 + 0.5)) + Math.abs(driftRot + buildRoll) * 1.1;
         const dropBurst = f.dropAge < 50 ? f.drop * Math.exp(-f.dropAge * (1 / 0.28 - 1 / 1.6)) : 0;
         const glitchSeed = Math.floor(t * 24);
         const kickIdx = Math.round(f.time * 1000 - f.kickAge * 1000);
@@ -674,7 +789,7 @@ export class Engine {
         const glitch = fx.glitch * ((strongKick ? Math.exp(-f.kickAge / 0.09) : 0) * 0.8 + dropBurst * 1.2 + Math.pow(build, 3) * 0.6) * dyn;
         const period = 60 / Math.max(30, f.bpm);
         const strobe = fx.strobe * Math.exp(-(f.beatPhase * period) / 0.035) * (f.section === 'drop' || f.section === 'main' ? 1 : 0.25) * dyn;
-        const flash = fx.flash * (Math.pow(kick, 3) * 0.2 * dyn + dropBurst * 0.75) + strobe * 0.9;
+        const flash = fx.flash * (Math.pow(kick, 3) * 0.2 * dyn + dropBurst * 0.75) + strobe * 0.9 + this.boltFlash * 0.25;
         const fadeIn = fx.fadeIn > 0 ? Math.min(1, Math.max(0, (t - info.rangeStart) / fx.fadeIn)) : 1;
         const fadeOut = fx.fadeOut > 0 ? Math.min(1, Math.max(0, (info.rangeEnd - t) / fx.fadeOut)) : 1;
         const fl = palette[0];
@@ -685,7 +800,10 @@ export class Engine {
             .f('uBloomAmt', fx.bloom * (0.85 + 0.45 * kick + 0.3 * dropBurst))
             .tex('uFlare', (this.flareOut ?? this.flareA).texture)
             .f('uFlareAmt', fx.flare > 0.001 ? flareAmt * 2.4 : 0)
+            .f('uZoomBlur', Math.min(0.5, (fx.zoomBlur ?? 0) * (Math.pow(kick, 2) * 0.6 + dropBurst * 0.45) * dyn))
+            .v2('uZbCenter', ctrX / (2 * hsx) + 0.5, ctrY / (2 * hsy) + 0.5)
             .v3('uFlareTint', [0.35 + 0.4 * palette[0][0], 0.45 + 0.4 * palette[0][1], 0.75 + 0.25 * palette[0][2]])
+
             .f('uCA', fx.chromatic * (0.15 + 0.85 * kick + 1.5 * dropBurst) * dyn)
             .f('uGlitch', Math.min(1, glitch))
             .f('uGlitchSeed', glitchSeed)
@@ -719,6 +837,7 @@ export class Engine {
         this.bg2.dispose();
         this.flareA.dispose();
         this.flareB.dispose();
+        for (const d of this.dof) d.dispose();
         for (const b of this.bloom) b.dispose();
         for (const c of this.images.values()) gl.deleteTexture(c.tex);
         gl.deleteTexture(this.specTex);

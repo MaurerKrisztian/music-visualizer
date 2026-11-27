@@ -4,10 +4,10 @@
 export const BACKGROUND_MODES = ['image', 'stage', 'tunnel', 'warp', 'lasers', 'hex', 'grid', 'nebula', 'plasma', 'kaleido', 'void'] as const;
 export type BackgroundMode = (typeof BACKGROUND_MODES)[number];
 
-export const SPECTRUM_STYLES = ['radial-bars', 'radial-wave', 'linear-bars', 'linear-wave', 'oscilloscope', 'circle-scope', 'none'] as const;
+export const SPECTRUM_STYLES = ['radial-bars', 'radial-wave', 'linear-bars', 'linear-wave', 'terrain', 'oscilloscope', 'circle-scope', 'none'] as const;
 export type SpectrumStyle = (typeof SPECTRUM_STYLES)[number];
 
-export const PARTICLE_MODES = ['none', 'warp', 'embers', 'dust', 'sparks'] as const;
+export const PARTICLE_MODES = ['none', 'warp', 'embers', 'dust', 'sparks', 'orbit', 'confetti'] as const;
 export type ParticleMode = (typeof PARTICLE_MODES)[number];
 
 export const COLOR_MODES = ['palette', 'reactive', 'rainbow', 'mono'] as const;
@@ -78,6 +78,10 @@ export interface Project {
         /** festival crowd silhouettes in the foreground */
         crowd: number;
         crowdHeight: number;
+        /** volumetric light rays from the centre */
+        rays: number;
+        /** lightning strikes on drops and some big kicks */
+        lightning: number;
     };
     spectrum: {
         style: SpectrumStyle;
@@ -97,6 +101,8 @@ export interface Project {
         opacity: number;
         /** falling peak caps on bar styles */
         peaks: boolean;
+        /** radial styles: the spectrum shape flies outward as a ring on each kick */
+        echo: number;
         release: number;
         minHz: number;
         maxHz: number;
@@ -117,6 +123,8 @@ export interface Project {
         ringGlow: number;
         spin: number;
         shockRings: number;
+        /** jelly squash-and-stretch on kicks */
+        wobble: number;
     };
     particles: {
         mode: ParticleMode;
@@ -126,6 +134,8 @@ export interface Project {
         kickBoost: number;
         opacity: number;
         colorMode: 'palette' | 'white' | 'fire';
+        /** extra burst of sparks on every drop */
+        dropBurst: boolean;
     };
     text: {
         enabled: boolean;
@@ -146,6 +156,9 @@ export interface Project {
         align: 'left' | 'center' | 'right';
         /** seconds the title is shown big in the centre at the start (0 = off) */
         intro: number;
+        /** per-letter animation of the title and lyrics */
+        anim: 'none' | 'wave' | 'bounce' | 'jitter' | 'flicker' | 'explode';
+        animAmount: number;
     };
     lyrics: {
         cues: { start: number; end: number; text: string }[];
@@ -192,6 +205,12 @@ export interface Project {
         buildBoost: number;
         /** beat-synced camera cuts (new angle every bar) in intense parts */
         cuts: number;
+        /** slow, living camera motion */
+        drift: number;
+        /** radial motion blur on kicks and drops */
+        zoomBlur: number;
+        /** soft focus in breakdowns, sharp on drops */
+        dreamy: number;
         fadeIn: number;
         fadeOut: number;
     };

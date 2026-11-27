@@ -38,6 +38,7 @@ Every frame is a pure function of **(project settings, audio features at time t)
 - [x] Drop scene: a second background that cuts in on drops (Euphoric preset: nebula breakdowns, neon tunnel drops).
 - [x] Falling peak caps on bar spectrums.
 - [x] Festival stage background (truss, moving heads, LED wall), vinyl and square-cover centre shapes, anamorphic lens flares, fullscreen watch mode.
+- [x] Animation update: kinetic typography, 3D spectrum terrain, kick echo rings, god rays, lightning, orbit and confetti particles with drop bursts, logo jelly wobble, camera drift and build-up roll, dreamy breakdown blur, kick zoom blur.
 - [x] Runs as a Claude artifact (saves through the viewer's downloads capability; MP4 falls back to Opus audio when WASM is blocked).
 
 ## Next

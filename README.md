@@ -9,14 +9,14 @@ A browser music visualizer built for **hardstyle, rawstyle, hardcore, uptempo an
 - **Track analysis** (Web Worker): kick detection, BPM and beat grid, downbeats, build-ups and drops, plus an intensity curve. Double-click the timeline to add or remove a drop by hand.
 - **WebGL2 engine** with:
   - 11 backgrounds (cover art, festival stage, neon tunnel, hyperspace, lasers, hex shockwave, retro grid, nebula, plasma, kaleidoscope, void)
-  - 6 spectrum styles
+  - 7 spectrum styles, including a 3D terrain that scrolls away from the viewer, and echo rings that fly out on kicks
   - centre logo as a circle, a square cover or a spinning vinyl record (it back-spins on drops), with shock rings
-  - particles
-  - lasers, fire with pyro jets, smoke, and festival crowd silhouettes that jump on the kicks
-  - post effects: bloom, anamorphic lens flares, shake, zoom punch, beat-synced camera cuts, shockwave ripple, glitch, chromatic aberration, strobe, trails and film grain
+  - particles: warp, embers, dust, sparks, orbit and confetti cannons, with a burst on every drop
+  - lasers, god rays, lightning on drops, fire with pyro jets, smoke, and festival crowd silhouettes that jump on the kicks
+  - camera and post effects: bloom, anamorphic lens flares, shake, zoom punch, kick zoom blur, beat-synced camera cuts, living camera drift, a camera roll into each drop, dreamy breakdown blur, shockwave ripple, glitch, chromatic aberration, strobe, trails and film grain
 - **Section-aware dynamics**: calm breakdowns, tension that builds into the drop, and maximum impact on the drop. An optional **drop scene** switches the background (and palette) the moment the kicks come back.
 - **13 genre presets** (Euphoric, Rawstyle, Uptempo Terror, Frenchcore, Gabber, Mainstage Pyro, Vinyl Spin and more). The gallery thumbnails are rendered from your own track.
-- **Branding**: intro title card, artist/title text with 20+ fonts (or upload your own), lyrics/subtitles from .lrc/.srt files, a corner watermark logo, and a separate drop palette.
+- **Branding**: kinetic typography (letters bounce on kicks, wave, jitter, flicker like neon or explode on drops), an intro title card that types itself in, artist/title text with 20+ fonts (or upload your own), lyrics/subtitles from .lrc/.srt files, a corner watermark logo, and a separate drop palette.
 - **Frame-accurate export**:
   - formats: MP4 (H.264 + AAC) or WebM (VP9 + Opus)
   - sizes: 720p to 4K, 30 or 60 fps, plus 9:16 Shorts/TikTok, square and 4:5

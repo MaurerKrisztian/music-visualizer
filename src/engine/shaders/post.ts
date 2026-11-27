@@ -104,7 +104,10 @@ uniform sampler2D uBloom;
 uniform float uBloomAmt;
 uniform sampler2D uFlare;
 uniform float uFlareAmt;
+uniform float uZoomBlur;
+uniform vec2 uZbCenter;
 uniform vec3 uFlareTint;
+
 uniform float uCA;
 uniform float uGlitch;
 uniform float uGlitchSeed;
@@ -169,6 +172,19 @@ void main() {
     col.r = texture(uScene, uv + dir * ca).r;
     col.g = texture(uScene, uv).g;
     col.b = texture(uScene, uv - dir * ca).b;
+    if (uZoomBlur > 0.001) {
+        // radial motion blur towards the centre: the frame "punches" on kicks
+        vec2 dz = uv - uZbCenter;
+        vec3 acc = vec3(0.0);
+        float wsum = 0.0;
+        for (int i = 0; i < 10; i++) {
+            float k = float(i) / 9.0;
+            float w = 1.0 - k * 0.55;
+            acc += texture(uScene, uv - dz * k * uZoomBlur * 0.14).rgb * w;
+            wsum += w;
+        }
+        col = mix(col, acc / wsum, min(1.0, uZoomBlur * 4.0));
+    }
     vec3 bl;
     bl.r = texture(uBloom, uv + dir * ca * 1.5).r;
     bl.g = texture(uBloom, uv).g;
@@ -186,7 +202,7 @@ void main() {
     vec2 vq = vUv - 0.5;
     vq.x *= mix(1.0, s.x / s.y, 0.5);
     float vig = smoothstep(0.95, 0.25, length(vq) * 1.25);
-    col *= mix(1.0, vig, uVignette);
+    col *= mix(1.0, vig, min(1.0, uVignette * (1.0 + 0.35 * uKick)));
 
     if (uScan > 0.001) col *= 1.0 - uScan * 0.3 * (0.5 + 0.5 * sin(vUv.y * 540.0 * PI));
     if (uGrain > 0.001) col += (hash21(vUv * uRes + fract(uFrame * 0.6180339) * 917.0) - 0.5) * uGrain * 0.16;

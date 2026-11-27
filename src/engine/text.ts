@@ -14,6 +14,23 @@ export interface TextBlock {
     cy: number;
     /** horizontal shift for left/right alignment, in centred units */
     shift: number;
+    glyphs: Glyphs;
+}
+
+export const MAX_GLYPHS = 64;
+
+/**
+ * Per-letter boxes for kinetic typography. Boxes partition the texture
+ * (no overlaps), in canvas uv (y down): A = (u0, u1, v0, v1),
+ * B = (index in line, line index, letters in line, seed).
+ */
+export interface Glyphs {
+    a: Float32Array;
+    b: Float32Array;
+    count: number;
+    texW: number;
+    texH: number;
+    lineH: number;
 }
 
 interface Line {
@@ -45,6 +62,7 @@ class TextTexture {
     readonly texture: WebGLTexture;
     private key = '';
     private size: { w: number; h: number; res: number } | null = null;
+    readonly glyphs: Glyphs = { a: new Float32Array(MAX_GLYPHS * 4), b: new Float32Array(MAX_GLYPHS * 4), count: 0, texW: 1, texH: 1, lineH: 1 };
 
     constructor(private readonly gl: GL) {
         this.canvas = typeof document !== 'undefined' ? document.createElement('canvas') : new OffscreenCanvas(4, 4);
@@ -94,8 +112,11 @@ class TextTexture {
         this.canvas.height = H;
         ctx.clearRect(0, 0, W, H);
         ctx.textBaseline = 'middle';
+        const lineTop: number[] = [];
+        const lineXs: number[][] = [];
         let y = pad;
         for (const m of measured) {
+            lineTop.push(y);
             ctx.font = m.font;
             let x = st.align === 'left' ? pad : st.align === 'right' ? W - pad - m.w : (W - m.w) / 2;
             const xs: number[] = [];
@@ -103,6 +124,7 @@ class TextTexture {
                 xs.push(x);
                 x += m.widths[i] + st.spacing * m.px;
             }
+            lineXs.push(xs);
             const cy = y + m.h / 2;
             const pass = (fn: (c: string, xx: number) => void) => m.chars.forEach((c, i) => fn(c, xs[i]));
             if (glow > 0.5) {
@@ -123,6 +145,42 @@ class TextTexture {
             pass((c, xx) => ctx.fillText(c, xx, cy));
             y += m.h + gap;
         }
+        // glyph boxes: split the texture at the midpoints between letters and lines
+        const g = this.glyphs;
+        let count = 0;
+        let overflow = false;
+        measured.forEach((m, li) => {
+            const top = li === 0 ? 0 : (lineTop[li - 1] + measured[li - 1].h + lineTop[li]) / 2;
+            const bottom = li === measured.length - 1 ? H : (lineTop[li] + m.h + lineTop[li + 1]) / 2;
+            const xs = lineXs[li];
+            const vis: number[] = [];
+            m.chars.forEach((c, i) => {
+                if (c.trim()) vis.push(i);
+            });
+            vis.forEach((ci, k) => {
+                if (count >= MAX_GLYPHS) {
+                    overflow = true;
+                    return;
+                }
+                const left = k === 0 ? 0 : (xs[vis[k - 1]] + m.widths[vis[k - 1]] + xs[ci]) / 2;
+                const right = k === vis.length - 1 ? W : (xs[ci] + m.widths[ci] + xs[vis[k + 1]]) / 2;
+                const o = count * 4;
+                g.a[o] = left / W;
+                g.a[o + 1] = right / W;
+                g.a[o + 2] = top / H;
+                g.a[o + 3] = bottom / H;
+                g.b[o] = k;
+                g.b[o + 1] = li;
+                g.b[o + 2] = vis.length;
+                g.b[o + 3] = ((count * 0.6180339 + li * 0.37) % 1) + 0.001;
+                count++;
+            });
+        });
+        g.count = overflow ? 0 : count;
+        g.texW = W;
+        g.texH = H;
+        g.lineH = measured[0]?.h ?? 1;
+
         const gl = this.gl;
         gl.bindTexture(gl.TEXTURE_2D, this.texture);
         gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
@@ -161,7 +219,7 @@ export class TextRenderer {
             String(fontsVersion),
         );
         const shift = t.align === 'left' ? halfW : t.align === 'right' ? -halfW : 0;
-        return { texture: this.title.texture, halfW, halfH, cx: t.x, cy: t.y, shift };
+        return { texture: this.title.texture, halfW, halfH, cx: t.x, cy: t.y, shift, glyphs: this.title.glyphs };
     }
 
     /** Lyric / subtitle line(s) using the title font. */
@@ -174,7 +232,7 @@ export class TextRenderer {
             1,
             String(fontsVersion),
         );
-        return { texture: this.lyric.texture, halfW, halfH, cx: 0, cy: ly.y, shift: 0 };
+        return { texture: this.lyric.texture, halfW, halfH, cx: 0, cy: ly.y, shift: 0, glyphs: this.lyric.glyphs };
     }
 
     dispose(): void {

@@ -38,7 +38,7 @@ const log = (m: string) => { (document.getElementById('log') as HTMLElement).tex
   g.fillText('HQ TV', 128, 66);
   const wm = { id: 'wm', source: wmCanvas, width: 256, height: 128 };
 
-  (window as unknown as Record<string, unknown>).renderAt = async (t: number, presetId: string | null, patch: unknown, w = 960, h = 540) => {
+  (window as unknown as Record<string, unknown>).renderAt = async (t: number, presetId: string | null, patch: unknown, w = 960, h = 540, pre = 1) => {
     let p = createDefaultProject();
     p.meta = { artist: 'D-STRUCTOR', title: 'Kickstorm' };
     const preset = PRESETS.find((x) => x.id === presetId);
@@ -52,7 +52,7 @@ const log = (m: string) => { (document.getElementById('log') as HTMLElement).tex
     const fps = 60;
     let frame = 0;
     const react = { ...DEFAULT_REACT, kickDecay: p.sync.kickDecay, spectrumRelease: p.spectrum.release, spectrum: { ...DEFAULT_REACT.spectrum, bars: p.spectrum.bars, minHz: p.spectrum.minHz, maxHz: p.spectrum.maxHz, gainDb: p.spectrum.gainDb, rangeDb: p.spectrum.rangeDb, tiltDb: p.spectrum.tiltDb } };
-    for (let tt = Math.max(0, t - 1); tt <= t + 1e-6; tt += 1 / fps) {
+    for (let tt = Math.max(0, t - pre); tt <= t + 1e-6; tt += 1 / fps) {
       const f = fe.compute(tt, 1 / fps, react);
       engine.render(p, f, { time: tt, dt: 1 / fps, rangeStart: 0, rangeEnd: buf.duration, frame: frame++ }, { background: null, logo: null, watermark: (patch as { wm?: boolean })?.wm ? wm : null });
     }
