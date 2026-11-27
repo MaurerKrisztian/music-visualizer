@@ -133,7 +133,7 @@ void main() {
         float h = hash21(vec2(row, uGlitchSeed));
         if (h < uGlitch * 0.55) uv.x += (hash21(vec2(row, uGlitchSeed + 1.7)) - 0.5) * 0.16 * uGlitch;
         vec2 blk = floor(uv * vec2(14.0, 8.0));
-        if (hash21(blk + uGlitchSeed * 3.1) < uGlitch * 0.07) uv += (hash22(blk + uGlitchSeed) - 0.5) * 0.08;
+        if (uGlitch > 0.05 && hash21(blk + uGlitchSeed * 3.1) < uGlitch * 0.07) uv += (hash22(blk + uGlitchSeed) - 0.5) * 0.08 * min(1.0, uGlitch * 3.0);
     }
 
     vec2 dir = (uv - 0.5);

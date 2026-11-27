@@ -7,6 +7,7 @@ import { DEFAULT_REACT, FeatureExtractor, type ReactOptions } from '../audio/fea
 import { Player } from '../audio/player';
 import { assets } from '../project/assets';
 import { createDefaultProject, normalizeProject } from '../project/defaults';
+import { applyPreset, PRESETS } from '../project/presets';
 import { parseLyrics } from '../project/lyrics';
 import { idbGet, idbPut } from '../project/idb';
 import { projectStore, setProject, Store } from '../project/store';
@@ -254,7 +255,8 @@ export async function restoreSession(): Promise<void> {
         await assets.restore([restored.background.imageId, restored.center.imageId, restored.watermark.imageId, restored.text.font.startsWith('Custom ') ? restored.text.font.slice(7) : null]);
         projectStore.set(restored, false);
     } else {
-        projectStore.set(createDefaultProject(), false);
+        // first visit: start from the showcase preset
+        projectStore.set(applyPreset(createDefaultProject(), PRESETS[0]), false);
     }
     const last = await idbGet<{ blob: Blob; name: string }>('kv', 'lastAudio').catch(() => undefined);
     if (last?.blob) await loadAudio(last.blob, last.name, { persist: false });
