@@ -35,12 +35,14 @@ export class ParticleSystem {
     private mode = 'none';
     private spawnAcc = 0;
     private time = 0;
+    private sphereRot = 0;
 
     reset(seed = 1): void {
         this.rng = mulberry32(seed);
         this.alive = 0;
         this.spawnAcc = 0;
         this.time = 0;
+        this.sphereRot = 0;
         this.count = 0;
     }
 
@@ -105,6 +107,50 @@ export class ParticleSystem {
         this.maxLife[i] = 5 + rnd() * 4;
         this.rot[i] = rnd() * Math.PI * 2;
         this.spinV[i] = (rnd() - 0.5) * 14;
+    }
+
+    /** 3D point sphere: each point's radius follows the spectrum band of its latitude. */
+    private sphere(d: Float32Array, n: number, s: Project['particles'], f: Features, dt: number, cx: number, cy: number, ringR: number, kick: number, sizeMul: number): number {
+        this.sphereRot += dt * (0.12 + 0.5 * s.speed) * (1 + kick * 2.5);
+        const yaw = this.sphereRot;
+        const pitch = 0.45 + 0.2 * Math.sin(this.time * 0.17);
+        const cyw = Math.cos(yaw);
+        const syw = Math.sin(yaw);
+        const cp = Math.cos(pitch);
+        const sp = Math.sin(pitch);
+        const spec = f.spectrum;
+        const bands = spec.length;
+        const R = ringR * 1.6 * (1 + 0.1 * kick);
+        const golden = Math.PI * (3 - Math.sqrt(5));
+        const D = 3.2;
+        for (let k = 0; k < n; k++) {
+            const y0 = 1 - (2 * (k + 0.5)) / n;
+            const rr = Math.sqrt(Math.max(0, 1 - y0 * y0));
+            const th = k * golden;
+            const lat = Math.abs(y0);
+            const v = bands ? spec[Math.min(bands - 1, Math.floor(lat * (bands - 1)))] : 0;
+            const disp = 1 + 0.55 * Math.pow(v, 1.4) + 0.03 * Math.sin(th * 3 + this.time * 2);
+            const x = Math.cos(th) * rr * disp;
+            const y = y0 * disp;
+            const z = Math.sin(th) * rr * disp;
+            // yaw around the vertical axis, then tilt towards the viewer
+            const x1 = x * cyw + z * syw;
+            const z1 = -x * syw + z * cyw;
+            const y2 = y * cp - z1 * sp;
+            const z2 = y * sp + z1 * cp;
+            const persp = D / (D + z2);
+            const front = Math.min(1, Math.max(0.08, 0.5 - z2 * 0.35));
+            const o = k * 8;
+            d[o] = cx + x1 * R * persp;
+            d[o + 1] = cy + y2 * R * persp;
+            d[o + 2] = (0.0016 + 0.0035 * v) * sizeMul * persp;
+            d[o + 3] = s.opacity * front * (0.55 + 0.45 * v + 0.3 * kick);
+            d[o + 4] = 1;
+            d[o + 5] = 0;
+            d[o + 6] = 0;
+            d[o + 7] = lat;
+        }
+        return n;
     }
 
     update(
@@ -227,7 +273,7 @@ export class ParticleSystem {
         // ---- simulation + instance data ---------------------------------------------------
         const d = this.data;
         const t = this.time;
-        let out = 0;
+        let out = s.mode === 'sphere' ? this.sphere(d, Math.min(2500, Math.max(100, target)), s, f, dt, cx, cy, ringR, kick, sizeMul) : 0;
         for (let i = 0; i < this.alive; i++) {
             this.life[i] += dt;
             const life = this.life[i];
@@ -327,6 +373,7 @@ export class ParticleSystem {
                     continue;
                 }
             }
+            if (out >= MAX_PARTICLES) continue;
             const o = out * 8;
             d[o] = this.x[i];
             d[o + 1] = this.y[i];

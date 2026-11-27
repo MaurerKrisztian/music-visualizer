@@ -12,7 +12,7 @@ export interface Preset {
     tags: string;
     swatch: [string, string, string];
     /** shown under its own heading in the gallery */
-    group?: 'simple';
+    group?: 'simple' | 'popular';
     patch: DeepPartial<Project>;
 }
 
@@ -250,6 +250,127 @@ export const PRESETS: Preset[] = [
             particles: { mode: 'none' },
             text: { font: 'Anton', y: 0.4, size: 0.08, spacing: 0.05, glitch: 0, glow: 0.2, anim: 'none' },
             fx: { bloom: 0.35, shake: 0.15, zoomPunch: 0.2, chromatic: 0, glitch: 0, shockwave: 0, flash: 0.1, trails: 0, grain: 0.05, vignette: 0.4, zoomBlur: 0 },
+        },
+    },
+
+    // ---- popular styles: well-known looks from music channels and visualizer apps ----
+    {
+        id: 'bass-circle',
+        name: 'Bass Circle',
+        tags: 'popular · circle on cover art',
+        group: 'popular',
+        swatch: ['#ffffff', '#40c4ff', '#ff4081'],
+        patch: {
+            palette: { a: '#ffffff', b: '#40c4ff', c: '#ff4081', hueSpeed: 0, dropHueShift: 0 },
+            background: { mode: 'image', imageBlur: 0.35, imageDim: 0.45, imageKickZoom: 0.6, imageDrift: 0.3, brightness: 0.9, react: 0.6 },
+            overlays: NO_OVERLAYS,
+            spectrum: { style: 'radial-wave', layers: 5, radius: 0.16, height: 0.12, thickness: 0.003, mirror: true, colorMode: 'palette', kickScale: 0.8, echo: 0 },
+            center: { enabled: true, shape: 'circle', x: 0, y: 0, radius: 0.16, ring: 0.35, ringGlow: 0.4, shockRings: 0.25, wobble: 0.1, kickScale: 0.7 },
+            particles: { mode: 'dust', count: 220, size: 0.35, speed: 0.4, kickBoost: 0.9, opacity: 0.7, dropBurst: false },
+            text: { ...CLEAN_TEXT, font: 'Bebas Neue', y: -0.74, size: 0.06, spacing: 0.08, pulse: 0.3 },
+            fx: { ...CLEAN_FX, bloom: 0.5, shake: 0.55, zoomPunch: 0.35, chromatic: 0.12, flash: 0.08, zoomBlur: 0.15, vignette: 0.5, grain: 0.05, dynamics: 0.5 },
+        },
+    },
+    {
+        id: 'label-bars',
+        name: 'Label Bars',
+        tags: 'popular · smooth white bars',
+        group: 'popular',
+        swatch: ['#ffffff', '#90a4ae', '#ffffff'],
+        patch: {
+            palette: { a: '#ffffff', b: '#cfd8dc', c: '#ffffff', hueSpeed: 0, dropHueShift: 0 },
+            background: { mode: 'image', imageBlur: 0.5, imageDim: 0.55, imageKickZoom: 0.25, imageDrift: 0.25, brightness: 0.85, react: 0.4 },
+            overlays: NO_OVERLAYS,
+            spectrum: { style: 'linear-bars', bars: 63, x: 0, y: -0.05, width: 0.8, height: 0.3, thickness: 0.002, gap: 0.3, mirror: false, peaks: false, smooth: 0.75, colorMode: 'mono', kickScale: 0.1, echo: 0, release: 0.2 },
+            center: { enabled: false },
+            particles: { mode: 'dust', count: 140, size: 0.3, speed: 0.3, kickBoost: 0.4, opacity: 0.55, dropBurst: false },
+            text: { ...CLEAN_TEXT, font: 'Bebas Neue', y: -0.32, size: 0.07, spacing: 0.04 },
+            fx: { ...CLEAN_FX, bloom: 0.25, shake: 0.12 },
+        },
+    },
+    {
+        id: 'scifi-hud',
+        name: 'Sci-Fi HUD',
+        tags: 'popular · HUD circle',
+        group: 'popular',
+        swatch: ['#00e5ff', '#1de9b6', '#ff9100'],
+        patch: {
+            palette: { a: '#00e5ff', b: '#1de9b6', c: '#ff9100', hueSpeed: 0, dropHueShift: 0 },
+            background: { mode: 'hex', speed: 0.3, scale: 0.5, detail: 0.3, brightness: 0.35, react: 0.4 },
+            overlays: NO_OVERLAYS,
+            spectrum: { style: 'hud', bars: 96, radius: 0.15, height: 0.13, thickness: 0.003, mirror: true, colorMode: 'palette', kickScale: 0.3, echo: 0 },
+            center: { enabled: true, shape: 'circle', x: 0, y: 0.02, radius: 0.12, ring: 0.2, ringGlow: 0.3, shockRings: 0, wobble: 0, kickScale: 0.3 },
+            particles: { mode: 'dust', count: 120, size: 0.25, speed: 0.3, kickBoost: 0.4, opacity: 0.5, dropBurst: false },
+            text: { ...CLEAN_TEXT, font: 'Orbitron', y: -0.8, size: 0.045, spacing: 0.22, glow: 0.45, anim: 'flicker', animAmount: 0.25 },
+            fx: { ...CLEAN_FX, bloom: 0.6, chromatic: 0.12, scanlines: 0.2, glitch: 0.06, shake: 0.1, grain: 0.05, vignette: 0.55 },
+        },
+    },
+    {
+        id: 'liquid-orb',
+        name: 'Liquid Orb',
+        tags: 'popular · organic blob',
+        group: 'popular',
+        swatch: ['#b388ff', '#ff4081', '#18ffff'],
+        patch: {
+            palette: { a: '#b388ff', b: '#ff4081', c: '#18ffff', hueSpeed: 0, dropHueShift: 0 },
+            background: { mode: 'gradient', speed: 0.3, scale: 0.7, detail: 0.3, brightness: 0.55, react: 0.3 },
+            overlays: NO_OVERLAYS,
+            spectrum: { style: 'blob', radius: 0.16, height: 0.1, layers: 3, mirror: true, colorMode: 'palette', kickScale: 0.3, echo: 0 },
+            center: { enabled: false, x: 0, y: 0.06 },
+            particles: { mode: 'none' },
+            text: { ...CLEAN_TEXT, font: 'Bebas Neue', y: -0.78, size: 0.055, spacing: 0.1 },
+            fx: { ...CLEAN_FX, bloom: 0.5, zoomPunch: 0.1, vignette: 0.45 },
+        },
+    },
+    {
+        id: 'particle-sphere',
+        name: 'Particle Sphere',
+        tags: 'popular · 3D sphere',
+        group: 'popular',
+        swatch: ['#00e5ff', '#2979ff', '#e040fb'],
+        patch: {
+            palette: { a: '#00e5ff', b: '#2979ff', c: '#e040fb', hueSpeed: 0, dropHueShift: 0 },
+            background: { mode: 'void', brightness: 0.5, detail: 0.2, react: 0.4 },
+            overlays: NO_OVERLAYS,
+            spectrum: { style: 'none', radius: 0.15 },
+            center: { enabled: false, x: 0, y: 0.05 },
+            particles: { mode: 'sphere', count: 1800, size: 0.4, speed: 0.4, kickBoost: 0.6, opacity: 0.9, colorMode: 'palette', dropBurst: true },
+            text: { ...CLEAN_TEXT, font: 'Michroma', y: -0.82, size: 0.04, spacing: 0.22 },
+            fx: { ...CLEAN_FX, bloom: 0.6, trails: 0, zoomPunch: 0.15, vignette: 0.5 },
+        },
+    },
+    {
+        id: 'retro-vhs',
+        name: 'Retro VHS',
+        tags: 'popular · lo-fi tape',
+        group: 'popular',
+        swatch: ['#ff8a65', '#ffd180', '#80deea'],
+        patch: {
+            palette: { a: '#ff8a65', b: '#ffd180', c: '#80deea', hueSpeed: 0, dropHueShift: 0 },
+            background: { mode: 'gradient', speed: 0.25, scale: 0.7, detail: 0.4, brightness: 0.8, react: 0.3 },
+            overlays: NO_OVERLAYS,
+            spectrum: { style: 'linear-bars', bars: 48, x: 0, y: -0.8, width: 0.6, height: 0.14, gap: 0.4, mirror: true, peaks: false, smooth: 0.4, colorMode: 'palette', kickScale: 0.15, echo: 0 },
+            center: { enabled: true, shape: 'square', x: 0, y: 0.18, radius: 0.17, ring: 0, ringGlow: 0.15, shockRings: 0, wobble: 0, kickScale: 0.15 },
+            particles: { mode: 'dust', count: 80, size: 0.3, speed: 0.2, kickBoost: 0.2, opacity: 0.4, dropBurst: false },
+            text: { ...CLEAN_TEXT, font: 'Teko', y: -0.42, size: 0.06, spacing: 0.06 },
+            fx: { ...CLEAN_FX, vhs: 0.65, bloom: 0.35, grain: 0.1, vignette: 0.6, saturation: 0.9, contrast: 1.05 },
+        },
+    },
+    {
+        id: 'feedback-trip',
+        name: 'Feedback Trip',
+        tags: 'popular · psychedelic',
+        group: 'popular',
+        swatch: ['#ff00aa', '#00e5ff', '#ffea00'],
+        patch: {
+            palette: { a: '#ff00aa', b: '#00e5ff', c: '#ffea00', hueSpeed: 12, dropHueShift: 60 },
+            background: { mode: 'void', brightness: 0.3, detail: 0.2, react: 0.3 },
+            overlays: NO_OVERLAYS,
+            spectrum: { style: 'circle-scope', radius: 0.12, height: 0.12, thickness: 0.004, colorMode: 'rainbow', kickScale: 0.5, echo: 0 },
+            center: { enabled: false, x: 0, y: 0 },
+            particles: { mode: 'none' },
+            text: { ...CLEAN_TEXT, font: 'Monoton', y: -0.8, size: 0.05, spacing: 0.1, anim: 'wave', animAmount: 0.4 },
+            fx: { ...CLEAN_FX, trails: 0.95, trailZoom: 0.7, trailSpin: 0.35, bloom: 0.55, zoomPunch: 0.15, saturation: 1.25, vignette: 0.5 },
         },
     },
 

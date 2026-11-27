@@ -9,6 +9,7 @@ uniform float uSpecRow;
 uniform float uSpecHist;
 uniform float uSpecPhase;
 uniform float uSpEcho;
+uniform float uSpSmooth;
 uniform sampler2D uWave;
 uniform int uStyle;
 uniform vec2 uSpCenter;
@@ -40,6 +41,14 @@ float specSmooth(float x, float back) {
     float p3 = specRaw(i + 2.0, back);
     float v = p1 + 0.5 * t * (p2 - p0 + t * (2.0 * p0 - 5.0 * p1 + 4.0 * p2 - p3 + t * (3.0 * (p1 - p2) + p3 - p0)));
     return clamp(v, 0.0, 1.0);
+}
+
+// Bar height, optionally blended with its neighbours into soft hills.
+float barValue(float idx) {
+    float v = specRaw(idx, 0.0);
+    if (uSpSmooth < 0.001) return v;
+    float s = v + 0.6 * (specRaw(idx - 1.0, 0.0) + specRaw(idx + 1.0, 0.0)) + 0.25 * (specRaw(idx - 2.0, 0.0) + specRaw(idx + 2.0, 0.0));
+    return mix(v, min(1.0, s / 2.7 * 1.12), uSpSmooth);
 }
 
 float waveAt(float x, float ch) {
@@ -76,7 +85,7 @@ vec4 radialBars(vec2 p) {
     float idx = min(floor(fi), uSpecBars - 1.0);
     float fx = fi - idx;
     if (uSpMirror > 0.5 && ang < 0.0) fx = 1.0 - fx;
-    float v = specRaw(idx, 0.0);
+    float v = barValue(idx);
     float len = uSpHeight * pow(v, 1.35) + uSpThick;
     float step0 = TAU / nAround;
     float bw = step0 * uSpRadius * (1.0 - uSpGap);
@@ -143,7 +152,7 @@ vec4 linearBars(vec2 p) {
     float cellI = floor(fi);
     float fx = fi - cellI;
     float idx = uSpMirror > 0.5 ? (cellI < uSpecBars ? uSpecBars - 1.0 - cellI : cellI - uSpecBars) : cellI;
-    float v = specRaw(idx, 0.0);
+    float v = barValue(idx);
     float h = uSpHeight * pow(v, 1.3) + uSpThick;
     float cw = W / nb;
     float bw = cw * (1.0 - uSpGap);
@@ -258,7 +267,7 @@ vec4 centerBars(vec2 p) {
     if (x < 0.0 || x > 1.0) return vec4(0.0);
     float fx, nb;
     float idx = barCell(x, fx, nb);
-    float v = specRaw(idx, 0.0);
+    float v = barValue(idx);
     float cw = W / nb;
     float bw = cw * (1.0 - uSpGap);
     float rr = bw * 0.5;
@@ -282,7 +291,7 @@ vec3 meterCell(vec2 q, float W, float x, float H, bool symmetric, bool square, f
     float si = floor(y / segH);
     local = vec2((fx - 0.5) * cw, (y / segH - si - 0.5) * segH);
     cellSize = vec2(cw, segH);
-    v = specRaw(idx, 0.0);
+    v = barValue(idx);
     float level = max(pow(v, 1.15) * nSeg, minLevel);
     float lit = step(si + 0.35, level);
     float peak = 0.0;
@@ -354,6 +363,111 @@ vec4 specLine(vec2 p) {
     float fill = q.y > 0.0 && q.y < y ? 0.1 * q.y / max(y, 1e-4) : 0.0;
     vec3 c = spColor(bx, y / max(uSpHeight, 1e-4));
     return vec4(c * (l + fill), min(1.0, l));
+}
+
+// Sci-fi HUD: a tick ring driven by the spectrum, arcs for bass / mids / highs and dashed rings.
+vec4 hudRings(vec2 p) {
+    vec2 q = rot(-uSpRot) * (p - uSpCenter);
+    float r = length(q);
+    float R = uSpRadius;
+    float H = uSpHeight;
+    if (r > R + H * 1.5 + 0.06 || r < R * 0.8) return vec4(0.0);
+    float ang = atan(q.x, q.y);
+    float a01 = ang / TAU + 0.5;
+    float aa = px() * 1.2;
+    float w = uSpThick * 0.35 + 0.0012;
+    vec3 col = vec3(0.0);
+    float alpha = 0.0;
+
+    // inner ring that flashes on kicks
+    float d1 = abs(r - R);
+    float ring1 = smoothstep(w + aa, w - aa, d1);
+    col += mix(uColA, vec3(1.0), 0.3) * (ring1 * (0.7 + 0.8 * uKick) + exp(-d1 / 0.01) * 0.2 * (0.3 + uKick));
+    alpha = max(alpha, ring1);
+
+    // tick ring: every tick is a band of the spectrum, every 8th one is longer
+    const float NT = 96.0;
+    float ti = floor(a01 * NT);
+    float ac = (ti + 0.5) / NT;
+    float tx = uSpMirror > 0.5 ? abs(ac - 0.5) * 2.0 : ac;
+    float v = specSmooth(tx, 0.0);
+    float major = 1.0 - step(0.5, mod(ti, 8.0));
+    float r0 = R + 0.012;
+    float len = 0.005 + major * 0.006 + H * 0.85 * pow(v, 1.3);
+    float ex = (abs(fract(a01 * NT) - 0.5) - 0.17) * TAU * r / NT;
+    float ey = max(r0 - r, r - (r0 + len));
+    float tick = smoothstep(aa, -aa, max(ex, ey));
+    col += spColor(tx, v) * (0.55 + 0.9 * v) * tick;
+    alpha = max(alpha, tick);
+
+    // three arcs on one ring that turn at different speeds; their length follows bass, mids and highs
+    float rA = R + H * 1.05 + 0.024;
+    float arc = smoothstep(w * 1.8 + aa, w * 1.8 - aa, abs(r - rA));
+    if (arc > 0.0) {
+        float lev[3] = float[3](uBass, uMid, uHigh);
+        for (int k = 0; k < 3; k++) {
+            float fk = float(k);
+            float start = fract(uTime * (0.05 + 0.035 * fk) * (k == 1 ? -1.0 : 1.0) + fk / 3.0);
+            float lenA = 0.04 + 0.22 * clamp(lev[k], 0.0, 1.0);
+            float on = step(fract(a01 - start), lenA);
+            col += (k == 0 ? uColA : (k == 1 ? uColB : uColC)) * arc * on * 1.1;
+            alpha = max(alpha, arc * on);
+        }
+    }
+
+    // dashed ring turning slowly, plus a fine full ring outside it
+    float rD = R + H * 1.3 + 0.04;
+    float dash = step(0.5, fract(a01 * 60.0 + uTime * 0.15 + uSpin * 0.05));
+    float dashed = smoothstep(w + aa, w - aa, abs(r - rD)) * dash;
+    float fine = smoothstep(w * 0.6 + aa, w * 0.6 - aa, abs(r - rD - 0.012));
+    col += mix(uColB, vec3(1.0), 0.2) * dashed * 0.7 + uColA * fine * 0.35;
+    alpha = max(alpha, max(dashed, fine * 0.5));
+
+    // a pulse that runs outward from the inner ring on each kick
+    float age = uKickAge[0];
+    if (age < 0.6) col += uColA * exp(-abs(r - (R + age * 0.3)) / 0.004) * uKickStr[0] * (1.0 - age / 0.6) * 0.6;
+    return vec4(col, min(alpha, 1.0));
+}
+
+// Organic orb: up to three glossy blobs whose outlines are smooth noise driven by bass, mids and the spectrum.
+float orbRadius(float ang, float fl) {
+    vec2 c = vec2(cos(ang), sin(ang));
+    float t = uTime * (0.35 + 0.1 * fl);
+    float n = fbm3(c * (1.1 + 0.25 * fl) + vec2(t, -t * 0.7) + fl * 3.7) - 0.5;
+    float s = specSmooth(abs(ang) / PI, fl * 2.0);
+    return uSpRadius * (1.0 + 0.16 * uBass + 0.1 * uKick) * (1.0 + 0.1 * fl) + uSpHeight * (n * (0.5 + 0.9 * uMid) + 0.2 * s);
+}
+
+vec4 liquidOrb(vec2 p) {
+    vec2 q = rot(-uSpRot) * (p - uSpCenter);
+    float r = length(q);
+    if (r > uSpRadius * 1.6 + uSpHeight * 1.2 + 0.06) return vec4(0.0);
+    float ang = atan(q.x, q.y);
+    int layers = int(clamp(uSpLayers, 1.0, 3.0));
+    float aa = px() * 1.5;
+    vec3 light = normalize(vec3(-0.45, 0.6, 0.65));
+    vec3 col = vec3(0.0);
+    float alpha = 0.0;
+    for (int L = 2; L >= 0; L--) {
+        if (L >= layers) continue;
+        float fl = float(L);
+        float rr = orbRadius(ang, fl);
+        float inside = smoothstep(rr + aa, rr - aa, r);
+        vec3 lc = L == 0 ? uColA : (L == 1 ? uColB : uColC);
+        // shade it like a sphere that follows the wobbling outline
+        vec2 nq = q / max(rr, 1e-3);
+        float nz = sqrt(max(0.0, 1.0 - dot(nq, nq)));
+        vec3 n = vec3(nq, nz);
+        float diff = max(0.0, dot(n, light));
+        float spec = pow(max(0.0, reflect(-light, n).z), 24.0);
+        float rim = pow(1.0 - nz, 3.0);
+        vec3 c = lc * (0.12 + 0.6 * diff) + mix(lc, vec3(1.0), 0.5) * rim * 0.9 + vec3(spec * 0.55);
+        float a = inside * (L == 0 ? 1.0 : 0.75);
+        col = mix(col, c, a);
+        alpha = max(alpha, a);
+        col += lc * exp(-max(r - rr, 0.0) / 0.02) * 0.12 * (1.0 - inside);
+    }
+    return vec4(col * (0.85 + 0.3 * uKick), alpha);
 }
 
 // 3D landscape of the last second of spectrum frames, scrolling away from the viewer.
@@ -433,6 +547,8 @@ void main() {
     else if (uStyle == 8) c = ledBlocks(p);
     else if (uStyle == 9) c = dotMatrix(p);
     else if (uStyle == 10) c = specLine(p);
+    else if (uStyle == 11) c = hudRings(p);
+    else if (uStyle == 12) c = liquidOrb(p);
     if (uSpEcho > 0.001 && (uStyle == 0 || uStyle == 1 || uStyle == 5)) c.rgb += echoRings(p);
     outColor = vec4(c.rgb * uSpOpacity, c.a * uSpOpacity);
 }`;

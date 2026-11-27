@@ -118,6 +118,7 @@ uniform vec3 uFlashColor;
 uniform float uVignette;
 uniform float uGrain;
 uniform float uScan;
+uniform float uVhs;
 uniform float uExposure;
 uniform float uContrast;
 uniform float uSaturation;
@@ -166,6 +167,18 @@ void main() {
         if (uGlitch > 0.05 && hash21(blk + uGlitchSeed * 3.1) < uGlitch * 0.07) uv += (hash22(blk + uGlitchSeed) - 0.5) * 0.08 * min(1.0, uGlitch * 3.0);
     }
 
+    // VHS: wobbly lines, a tracking band that drifts down and noise at the bottom edge
+    float vhsLine = floor(vUv.y * 240.0);
+    float vhsT = floor(uTime * 30.0);
+    float vhsBand = 0.0;
+    if (uVhs > 0.001) {
+        // the tracking band comes and goes like on a worn tape
+        vhsBand = smoothstep(0.025, 0.0, abs(vUv.y - (1.0 - fract(uTime * 0.045)))) * smoothstep(0.55, 0.8, vnoise(vec2(uTime * 0.3, 1.7)));
+        uv.x += (hash21(vec2(vhsLine, vhsT)) - 0.5) * 0.0016 * uVhs;
+        uv.x += (hash21(vec2(vhsLine * 1.37, vhsT + 7.0)) - 0.5) * 0.014 * uVhs * vhsBand;
+        uv.x += smoothstep(0.03, 0.0, vUv.y) * (0.006 + 0.02 * hash21(vec2(vhsLine, vhsT + 3.0))) * uVhs;
+    }
+
     vec2 dir = (uv - 0.5);
     float ca = uCA * 0.01 + uGlitch * 0.012;
     vec3 col;
@@ -185,6 +198,13 @@ void main() {
         }
         col = mix(col, acc / wsum, min(1.0, uZoomBlur * 4.0));
     }
+    if (uVhs > 0.001) {
+        // soft, smeared picture with colour bleeding to the sides
+        float o = 0.003 * uVhs;
+        vec3 smear = (texture(uScene, uv + vec2(o, 0.0)).rgb + texture(uScene, uv - vec2(o, 0.0)).rgb + col) / 3.0;
+        vec3 bleed = vec3(texture(uScene, uv + vec2(o * 1.8, 0.0)).r, smear.g, texture(uScene, uv - vec2(o * 1.8, 0.0)).b);
+        col = mix(col, bleed, min(1.0, uVhs * 1.2));
+    }
     vec3 bl;
     bl.r = texture(uBloom, uv + dir * ca * 1.5).r;
     bl.g = texture(uBloom, uv).g;
@@ -198,6 +218,14 @@ void main() {
     float l = dot(col, vec3(0.2126, 0.7152, 0.0722));
     col = mix(vec3(l), col, uSaturation);
     col = (col - 0.5) * uContrast + 0.5;
+    if (uVhs > 0.001) {
+        float l2 = dot(col, vec3(0.299, 0.587, 0.114));
+        col = mix(col, mix(vec3(l2), col, 0.78) * vec3(1.05, 0.98, 0.9) + 0.03, uVhs * 0.8);
+        float stat = hash21(vec2(floor(vUv.x * uRes.x * 0.5), vhsLine * 3.1) + fract(uTime * 13.7) * 97.0);
+        col += ((stat - 0.5) * 0.18 + 0.025) * uVhs * vhsBand;
+        col = mix(col, vec3(stat * 0.8), smoothstep(0.025, 0.0, vUv.y) * 0.7 * uVhs);
+        col *= 1.0 - 0.1 * uVhs * (0.5 + 0.5 * sin(vUv.y * uRes.y * PI * 0.5));
+    }
 
     vec2 vq = vUv - 0.5;
     vq.x *= mix(1.0, s.x / s.y, 0.5);

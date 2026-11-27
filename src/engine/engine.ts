@@ -60,6 +60,8 @@ const STYLE_INDEX: Record<string, number> = {
     blocks: 8,
     dots: 9,
     line: 10,
+    hud: 11,
+    blob: 12,
 };
 const COLOR_INDEX: Record<string, number> = { palette: 0, reactive: 1, rainbow: 2, mono: 3 };
 const ANIM_INDEX: Record<string, number> = { none: 0, wave: 1, bounce: 2, jitter: 3, flicker: 4, explode: 5 };
@@ -499,7 +501,7 @@ export class Engine {
         const sp = P.spectrum;
         const ctrX = P.center.x * hsx;
         const ctrY = P.center.y * hsy;
-        const radialStyle = sp.style.startsWith('radial') || sp.style === 'circle-scope';
+        const radialStyle = sp.style.startsWith('radial') || sp.style === 'circle-scope' || sp.style === 'hud' || sp.style === 'blob';
         const drawSpectrum = () => {
             const kickScale = 1 + sp.kickScale * k15 * 0.12;
             const spg = this.progs.spectrum.use();
@@ -512,6 +514,7 @@ export class Engine {
                 .f('uSpecHist', SPEC_HIST)
                 .f('uSpecPhase', this.specAcc)
                 .f('uSpEcho', sp.echo ?? 0)
+                .f('uSpSmooth', sp.smooth ?? 0)
                 .tex('uWave', this.waveTex)
                 .i('uStyle', STYLE_INDEX[sp.style] ?? 0)
                 .v2('uSpCenter', radialStyle ? ctrX : sp.x * hsx, radialStyle ? ctrY : sp.y * hsy)
@@ -818,6 +821,7 @@ export class Engine {
             .f('uVignette', fx.vignette)
             .f('uGrain', fx.grain)
             .f('uScan', fx.scanlines)
+            .f('uVhs', fx.vhs ?? 0)
             .f('uExposure', fx.exposure)
             .f('uContrast', fx.contrast)
             .f('uSaturation', fx.saturation)

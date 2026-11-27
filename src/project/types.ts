@@ -7,6 +7,8 @@ export type BackgroundMode = (typeof BACKGROUND_MODES)[number];
 export const SPECTRUM_STYLES = [
     'radial-bars',
     'radial-wave',
+    'hud',
+    'blob',
     'linear-bars',
     'center-bars',
     'blocks',
@@ -20,7 +22,7 @@ export const SPECTRUM_STYLES = [
 ] as const;
 export type SpectrumStyle = (typeof SPECTRUM_STYLES)[number];
 
-export const PARTICLE_MODES = ['none', 'warp', 'embers', 'dust', 'sparks', 'orbit', 'confetti'] as const;
+export const PARTICLE_MODES = ['none', 'warp', 'embers', 'dust', 'sparks', 'orbit', 'confetti', 'sphere'] as const;
 export type ParticleMode = (typeof PARTICLE_MODES)[number];
 
 export const COLOR_MODES = ['palette', 'reactive', 'rainbow', 'mono'] as const;
@@ -116,6 +118,8 @@ export interface Project {
         peaks: boolean;
         /** radial styles: the spectrum shape flies outward as a ring on each kick */
         echo: number;
+        /** bar styles: blend each bar with its neighbours into soft hills */
+        smooth: number;
         release: number;
         minHz: number;
         maxHz: number;
@@ -224,6 +228,8 @@ export interface Project {
         zoomBlur: number;
         /** soft focus in breakdowns, sharp on drops */
         dreamy: number;
+        /** retro VHS tape look */
+        vhs: number;
         fadeIn: number;
         fadeOut: number;
     };

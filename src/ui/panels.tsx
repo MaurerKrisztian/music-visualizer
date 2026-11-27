@@ -29,6 +29,8 @@ const BG_LABELS: Record<BackgroundMode, string> = {
 const SPEC_LABELS: Record<SpectrumStyle, string> = {
     'radial-bars': 'Radial bars',
     'radial-wave': 'Radial layered wave',
+    hud: 'Sci-fi HUD',
+    blob: 'Liquid orb',
     'linear-bars': 'Bars',
     'center-bars': 'Centre bars (audiogram)',
     blocks: 'LED meter',
@@ -86,7 +88,8 @@ export function LookPanel() {
                 </button>
             </div>
             {[
-                { title: 'Full effects', list: PRESETS.filter((p) => p.group !== 'simple') },
+                { title: 'Full effects', list: PRESETS.filter((p) => !p.group) },
+                { title: 'Popular styles', list: PRESETS.filter((p) => p.group === 'popular') },
                 { title: 'Simple', list: PRESETS.filter((p) => p.group === 'simple') },
             ].map(({ title, list }) => (
                 <div key={title}>
@@ -353,8 +356,8 @@ export function ElementsPanel() {
     const style = useProject((p) => p.spectrum.style);
     const centerOn = useProject((p) => p.center.enabled);
     const pmode = useProject((p) => p.particles.mode);
-    const radial = style.startsWith('radial') || style === 'circle-scope';
-    const layered = style === 'radial-wave' || style === 'linear-wave';
+    const radial = style.startsWith('radial') || style === 'circle-scope' || style === 'hud' || style === 'blob';
+    const layered = style === 'radial-wave' || style === 'linear-wave' || style === 'blob';
     const bars = style === 'radial-bars' || style === 'linear-bars' || style === 'center-bars' || style === 'blocks' || style === 'dots';
     const peaks = style === 'radial-bars' || style === 'linear-bars' || style === 'blocks' || style === 'dots';
     const segmented = style === 'blocks' || style === 'dots';
@@ -377,6 +380,7 @@ export function ElementsPanel() {
                         <Slider label="Height" path="spectrum.height" min={0.02} max={0.45} step={0.005} />
                         {!segmented && <Slider label="Thickness" path="spectrum.thickness" min={0} max={0.02} step={0.0005} digits={4} />}
                         {bars && <Slider label="Gap" path="spectrum.gap" min={0} max={0.9} />}
+                        {bars && <Slider label="Smoothing" path="spectrum.smooth" hint="Blends each bar with its neighbours into soft hills" />}
                         {peaks && <Toggle label="Peak caps" path="spectrum.peaks" hint="Small caps that hold at the peak and fall slowly" />}
                         {layered && <Slider label="Layers" path="spectrum.layers" min={1} max={8} step={1} />}
                         <Toggle label="Mirror" path="spectrum.mirror" />
@@ -439,7 +443,7 @@ export function ElementsPanel() {
             <Section title="Particles">
                 <Segmented
                     path="particles.mode"
-                    options={PARTICLE_MODES.map((m) => ({ value: m, label: m === 'none' ? 'Off' : m[0].toUpperCase() + m.slice(1) }))}
+                    options={PARTICLE_MODES.map((m) => ({ value: m, label: m === 'none' ? 'Off' : m === 'sphere' ? '3D sphere' : m[0].toUpperCase() + m.slice(1) }))}
                 />
                 {pmode !== 'none' && (
                     <>
@@ -712,6 +716,7 @@ export function FxPanel() {
                 <Slider label="Vignette" path="fx.vignette" />
                 <Slider label="Grain" path="fx.grain" hint="Grain makes video files bigger; keep it low for YouTube" />
                 <Slider label="Scanlines" path="fx.scanlines" />
+                <Slider label="VHS tape" path="fx.vhs" hint="Wobbly lines, colour bleed and tracking noise" />
                 <Slider label="Letterbox" path="fx.letterbox" />
                 <Slider label="Fade in" path="fx.fadeIn" min={0} max={8} step={0.1} unit=" s" />
                 <Slider label="Fade out" path="fx.fadeOut" min={0} max={8} step={0.1} unit=" s" />
