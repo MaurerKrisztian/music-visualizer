@@ -66,6 +66,11 @@ export interface Features {
     dropHit: number;
     build: number;
     section: SectionKind;
+    /**
+     * 0..1 weight of the "drop scene": 1 inside drop/main (kick) sections with
+     * a short fade at the boundaries. Deterministic in time (no state).
+     */
+    hot: number;
     /** Number of drops at or before t (for palette hue jumps). */
     dropCount: number;
     /** Integral of the energy envelope up to t (seconds), drives "speed up with the music". */
@@ -131,6 +136,7 @@ export class FeatureExtractor {
             dropHit: 0,
             build: 0,
             section: 'main',
+            hot: 1,
             dropCount: 0,
             travel: 0,
             kickTravel: 0,
@@ -284,13 +290,26 @@ export class FeatureExtractor {
             f.build = build;
 
             let section: SectionKind = 'main';
-            for (const s of it.sections) {
+            let hot = 0;
+            const isHot = (k: SectionKind) => k === 'drop' || k === 'main';
+            for (let i = 0; i < it.sections.length; i++) {
+                const s = it.sections[i];
                 if (t >= s.start && t < s.end) {
                     section = s.kind;
+                    const fadeIn = 0.12;
+                    const fadeOut = 0.45;
+                    if (isHot(s.kind)) {
+                        const prevHot = i > 0 && isHot(it.sections[i - 1].kind);
+                        hot = prevHot ? 1 : Math.min(1, (t - s.start) / fadeIn);
+                    } else {
+                        const prevHot = i > 0 && isHot(it.sections[i - 1].kind);
+                        hot = prevHot ? Math.max(0, 1 - (t - s.start) / fadeOut) : 0;
+                    }
                     break;
                 }
             }
             f.section = section;
+            f.hot = hot;
         } else {
             f.kick = 0;
             f.kickAge = 99;
@@ -301,6 +320,7 @@ export class FeatureExtractor {
             f.build = 0;
             f.dropCount = 0;
             f.kickTravel = 0;
+            f.hot = 1;
         }
 
         this.lastT = t;

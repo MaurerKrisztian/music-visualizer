@@ -35,11 +35,12 @@ Every frame is a pure function of **(project settings, audio features at time t)
 - [x] Lyrics and subtitles from .lrc/.srt files; beat-synced camera cuts (a new framing on every bar during drops).
 - [x] Festival crowd silhouettes, a "Surprise me" randomiser and a keyboard shortcut overlay.
 - [x] Manual drop editing (double-click the timeline); kick-roll build-ups no longer create false early drops.
+- [x] Drop scene: a second background that cuts in on drops (Euphoric preset: nebula breakdowns, neon tunnel drops).
 
 ## Next
 
 - [ ] Multiple free text layers (e.g. label name, "OUT NOW").
-- [ ] Per-section looks beyond colours (switch background or spectrum style on each drop).
+- [ ] Per-section spectrum/particle styles (beyond background and colours).
 - [ ] Batch export (16:9 and 9:16 in one go).
 - [ ] Render the export in a worker with OffscreenCanvas so the UI stays responsive.
 - [ ] Beat-synced camera cuts and more backgrounds (3D city, crowd silhouettes, VHS).

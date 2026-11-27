@@ -50,6 +50,8 @@ export interface Project {
     };
     background: {
         mode: BackgroundMode;
+        /** background used in drops ('same' = no switch) */
+        dropMode: BackgroundMode | 'same';
         imageId: string | null;
         imageBlur: number;
         imageDim: number;

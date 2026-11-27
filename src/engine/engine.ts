@@ -71,6 +71,7 @@ export class Engine {
     private readonly scene: RenderTarget;
     private fxA: RenderTarget;
     private fxB: RenderTarget;
+    private readonly bg2: RenderTarget;
     private readonly bloom: RenderTarget[] = [];
     private readonly bgPrograms = new Map<BackgroundMode, Program>();
     private readonly progs: Record<string, Program> = {};
@@ -113,6 +114,7 @@ export class Engine {
         this.scene = new RenderTarget(gl, fmt, 4, 4);
         this.fxA = new RenderTarget(gl, fmt, 4, 4);
         this.fxB = new RenderTarget(gl, fmt, 4, 4);
+        this.bg2 = new RenderTarget(gl, fmt, 4, 4);
         for (let i = 0; i < BLOOM_LEVELS; i++) this.bloom.push(new RenderTarget(gl, fmt, 4, 4));
 
         const mk = (name: string, fs: string, vs = FULLSCREEN_VS) => (this.progs[name] = new Program(gl, vs, fs, name));
@@ -175,6 +177,7 @@ export class Engine {
         this.scene.resize(w, h);
         this.fxA.resize(w, h);
         this.fxB.resize(w, h);
+        this.bg2.resize(w, h);
         let bw = w;
         let bh = h;
         for (const b of this.bloom) {
@@ -280,6 +283,41 @@ export class Engine {
         return p;
     }
 
+    private drawBackground(
+        mode: BackgroundMode,
+        bgTex: CachedImage | null,
+        f: Features,
+        palette: RGB[],
+        move: number,
+        spin: number,
+        W: number,
+        H: number,
+        t: number,
+        dyn: number,
+        k15: number,
+        P: Project,
+    ): void {
+        const bg = P.background;
+        const bp = this.bgProgram(mode).use();
+        this.common(bp, f, palette, move, spin, W, H)
+            .f('uBgSpeed', bg.speed)
+            .f('uBgScale', bg.scale)
+            .f('uBgDetail', bg.detail)
+            .f('uBgTwist', bg.twist)
+            .f('uBgBright', bg.brightness)
+            .f('uBgReact', bg.react)
+            .tex('uImage', bgTex?.tex ?? this.blackTex)
+            .v2('uImageSize', bgTex?.w ?? 1, bgTex?.h ?? 1)
+            .f('uHasImage', bgTex ? 1 : 0)
+            .f('uImgBlur', bg.imageBlur)
+            .f('uImgDim', bg.imageDim)
+            .f('uImgZoom', 1.03 + bg.imageDrift * 0.05 * (0.5 + 0.5 * Math.sin(t * 0.05)) + bg.imageKickZoom * (k15 * 0.06 + f.drop * 0.04) * dyn)
+            .f('uImgRot', bg.imageDrift * 0.025 * Math.sin(t * 0.043))
+            .f('uImgKaleido', bg.imageKaleido)
+            .v2('uImgShift', bg.imageDrift * 0.03 * Math.sin(t * 0.031), bg.imageDrift * 0.02 * Math.cos(t * 0.023));
+        this.draw();
+    }
+
     render(project: Project, f: Features, info: FrameInfo, images: EngineImages): void {
         if (this.isLost) return;
         const gl = this.gl;
@@ -316,31 +354,35 @@ export class Engine {
         gl.disable(gl.DEPTH_TEST);
         gl.disable(gl.CULL_FACE);
 
-        // ---- 1. background -----------------------------------------------------------------
-        this.scene.bind();
-        gl.disable(gl.BLEND);
+        // ---- 1. background (plus the optional drop scene, blended in drops) --------------------
         const bgTex = this.imageTexture(images.background);
-        const bp = this.bgProgram(bg.mode).use();
-        this.common(bp, f, palette, move, spin, W, H)
-            .f('uBgSpeed', bg.speed)
-            .f('uBgScale', bg.scale)
-            .f('uBgDetail', bg.detail)
-            .f('uBgTwist', bg.twist)
-            .f('uBgBright', bg.brightness)
-            .f('uBgReact', bg.react)
-            .tex('uImage', bgTex?.tex ?? this.blackTex)
-            .v2('uImageSize', bgTex?.w ?? 1, bgTex?.h ?? 1)
-            .f('uHasImage', bgTex ? 1 : 0)
-            .f('uImgBlur', bg.imageBlur)
-            .f('uImgDim', bg.imageDim)
-            .f('uImgZoom', 1.03 + bg.imageDrift * 0.05 * (0.5 + 0.5 * Math.sin(t * 0.05)) + bg.imageKickZoom * (k15 * 0.06 + f.drop * 0.04) * dyn)
-            .f('uImgRot', bg.imageDrift * 0.025 * Math.sin(t * 0.043))
-            .f('uImgKaleido', bg.imageKaleido)
-            .v2('uImgShift', bg.imageDrift * 0.03 * Math.sin(t * 0.031), bg.imageDrift * 0.02 * Math.cos(t * 0.023));
-        this.draw();
+        const dropMode = bg.dropMode && bg.dropMode !== 'same' && bg.dropMode !== bg.mode ? bg.dropMode : null;
+        const hotW = dropMode ? f.hot : 0;
+        if (hotW < 0.999) {
+            this.scene.bind();
+            gl.disable(gl.BLEND);
+            this.drawBackground(bg.mode, bgTex, f, palette, move, spin, W, H, t, dyn, k15, P);
+        }
+        if (dropMode && hotW > 0.001) {
+            const target = hotW < 0.999 ? this.bg2 : this.scene;
+            target.bind();
+            gl.disable(gl.BLEND);
+            this.drawBackground(dropMode, bgTex, f, palette, move, spin, W, H, t, dyn, k15, P);
+            if (target === this.bg2) {
+                this.scene.bind();
+                gl.enable(gl.BLEND);
+                gl.blendColor(0, 0, 0, hotW);
+                gl.blendFunc(gl.CONSTANT_ALPHA, gl.ONE_MINUS_CONSTANT_ALPHA);
+                this.progs.copy.use().tex('uTex', this.bg2.texture).f('uAmt', 1);
+                this.draw();
+                gl.disable(gl.BLEND);
+            }
+        }
+        this.scene.bind();
 
         // ---- 2. overlays (additive) ------------------------------------------------------
         const ov = P.overlays;
+
         if (ov.fire > 0.001 || ov.lasers > 0.001 || ov.smoke > 0.001) {
             gl.enable(gl.BLEND);
             gl.blendFunc(gl.ONE, gl.ONE);
@@ -630,6 +672,7 @@ export class Engine {
         this.scene.dispose();
         this.fxA.dispose();
         this.fxB.dispose();
+        this.bg2.dispose();
         for (const b of this.bloom) b.dispose();
         for (const c of this.images.values()) gl.deleteTexture(c.tex);
         gl.deleteTexture(this.specTex);

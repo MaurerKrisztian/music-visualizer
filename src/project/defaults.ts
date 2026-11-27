@@ -9,6 +9,7 @@ export function createDefaultProject(): Project {
         palette: { a: '#00e5ff', b: '#7a2cff', c: '#ff2bd6', hueSpeed: 0, dropHueShift: 40, dropColors: false, da: '#ff1744', db: '#ff9100', dc: '#ffffff' },
         background: {
             mode: 'tunnel',
+            dropMode: 'same',
             imageId: null,
             imageBlur: 0.15,
             imageDim: 0.35,

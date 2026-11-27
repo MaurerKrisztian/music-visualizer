@@ -14,7 +14,7 @@ A browser music visualizer built for **hardstyle, rawstyle, hardcore, uptempo an
   - particles
   - lasers, fire with pyro jets, smoke, and festival crowd silhouettes that jump on the kicks
   - post effects: bloom, shake, zoom punch, beat-synced camera cuts, shockwave ripple, glitch, chromatic aberration, strobe, trails and film grain
-- **Section-aware dynamics**: calm breakdowns, tension that builds into the drop, and maximum impact on the drop.
+- **Section-aware dynamics**: calm breakdowns, tension that builds into the drop, and maximum impact on the drop. An optional **drop scene** switches the background (and palette) the moment the kicks come back.
 - **12 genre presets** (Euphoric, Rawstyle, Uptempo Terror, Frenchcore, Gabber, Mainstage Pyro and more). The gallery thumbnails are rendered from your own track.
 - **Branding**: intro title card, artist/title text with 20+ fonts (or upload your own), lyrics/subtitles from .lrc/.srt files, a corner watermark logo, and a separate drop palette.
 - **Frame-accurate export**:

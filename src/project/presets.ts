@@ -18,11 +18,11 @@ export const PRESETS: Preset[] = [
     {
         id: 'euphoric',
         name: 'Euphoric Hardstyle',
-        tags: 'hardstyle · euphoric · festival',
+        tags: 'hardstyle · euphoric · scene switch on drop',
         swatch: ['#00e5ff', '#7a2cff', '#ff2bd6'],
         patch: {
             palette: { a: '#00e5ff', b: '#2a5cff', c: '#7c4dff', hueSpeed: 0, dropHueShift: 0, dropColors: true, da: '#ff2bd6', db: '#7a2cff', dc: '#00e5ff' },
-            background: { mode: 'tunnel', speed: 0.45, scale: 0.45, detail: 0.5, twist: 0.3, brightness: 0.75, react: 0.7 },
+            background: { mode: 'nebula', dropMode: 'tunnel', speed: 0.45, scale: 0.45, detail: 0.5, twist: 0.3, brightness: 0.75, react: 0.7 },
             overlays: { lasers: 0.4, smoke: 0.3, fire: 0 },
             spectrum: { style: 'radial-bars', bars: 64, radius: 0.15, height: 0.15, gap: 0.35, colorMode: 'palette', kickScale: 0.6 },
             center: { enabled: true, radius: 0.15, ring: 0.6, ringGlow: 0.7, shockRings: 0.6 },

@@ -292,6 +292,11 @@ export function ScenePanel() {
 
             <Section title="Background">
                 <Select label="Style" path="background.mode" options={BACKGROUND_MODES.map((m) => ({ value: m, label: BG_LABELS[m] }))} />
+                <Select
+                    label="Drop scene"
+                    path="background.dropMode"
+                    options={[{ value: 'same', label: 'Same as style' }, ...BACKGROUND_MODES.map((m) => ({ value: m, label: BG_LABELS[m] }))]}
+                />
                 {mode === 'image' ? (
                     <>
                         <ImageSlot label="Image" path="background.imageId" hint="Cover art or any picture; it pulses with the kicks" />
