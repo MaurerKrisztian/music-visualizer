@@ -1,4 +1,5 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { presetThumb, renderThumbs, subscribeThumbs, thumbsVersion } from '../app/thumbs';
 import { appStore, loadAudio, loadDemo, seek, toast } from '../app/session';
 import { assets } from '../project/assets';
 import { customFontList, ensureFont, FONTS } from '../project/fonts';
@@ -50,6 +51,16 @@ const PALETTES: [string, string, string][] = [
 
 export function LookPanel() {
     const [active, setActive] = useState<string | null>(null);
+    const interp = useStore(appStore, (s) => s.interp);
+    const artist = useProject((p) => p.meta.artist);
+    const title = useProject((p) => p.meta.title);
+    const bgImage = useProject((p) => p.background.imageId);
+    const logo = useProject((p) => p.center.imageId);
+    useSyncExternalStore(subscribeThumbs, thumbsVersion);
+    useEffect(() => {
+        const t = setTimeout(() => void renderThumbs(), 400);
+        return () => clearTimeout(t);
+    }, [interp, artist, title, bgImage, logo]);
     return (
         <div className="panel">
             <Hint>Pick a starting look, then fine-tune it in the other tabs. Your track text, images and sync settings are kept.</Hint>
@@ -64,7 +75,9 @@ export function LookPanel() {
                             void ensureFont(String(p.patch.text?.font ?? 'Orbitron'));
                         }}
                     >
-                        <span className="swatch" style={{ background: `linear-gradient(120deg, ${p.swatch[0]}, ${p.swatch[1]} 55%, ${p.swatch[2]})` }} />
+                        <span className="swatch" style={{ background: `linear-gradient(120deg, ${p.swatch[0]}, ${p.swatch[1]} 55%, ${p.swatch[2]})` }}>
+                            {presetThumb(p.id) && <img src={presetThumb(p.id)} alt="" loading="lazy" />}
+                        </span>
                         <span className="preset-name">{p.name}</span>
                         <span className="preset-tags">{p.tags}</span>
                     </button>

@@ -226,6 +226,22 @@ button {
     text-align: center;
     padding: 20px;
 }
+.demo-pill {
+    position: absolute;
+    left: 50%;
+    top: 12px;
+    transform: translateX(-50%);
+    padding: 6px 12px;
+    border-radius: 20px;
+    background: rgba(8, 9, 16, 0.72);
+    border: 1px solid var(--line2);
+    color: var(--muted);
+    font-size: 12px;
+    max-width: calc(100% - 24px);
+    text-align: center;
+    pointer-events: none;
+    backdrop-filter: blur(4px);
+}
 .overlay.dim {
     background: rgba(5, 6, 12, 0.55);
 }
@@ -603,8 +619,8 @@ input[type='number']:focus {
     background: none;
     color: var(--muted);
     border-radius: 6px;
-    padding: 5px 6px;
-    font-size: 12px;
+    padding: 5px 4px;
+    font-size: 11.5px;
     font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
@@ -708,8 +724,23 @@ input[type='color']::-webkit-color-swatch {
     box-shadow: 0 0 0 1px var(--accent);
 }
 .swatch {
-    height: 46px;
+    position: relative;
+    aspect-ratio: 16 / 9;
     margin-bottom: 6px;
+    overflow: hidden;
+}
+.swatch img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    animation: fadein 0.3s ease;
+}
+@keyframes fadein {
+    from {
+        opacity: 0;
+    }
 }
 .preset-name {
     padding: 0 10px;
@@ -781,10 +812,11 @@ input[type='color']::-webkit-color-swatch {
 }
 .bpm-ctl {
     display: flex;
+    flex-wrap: wrap;
     gap: 4px;
 }
 .bpm-ctl input {
-    width: 78px;
+    width: 72px;
     flex: none;
 }
 .palette-row {
@@ -979,6 +1011,14 @@ input[type='color']::-webkit-color-swatch {
     }
     .time-input .btn {
         display: none;
+    }
+    .transport > .btn,
+    .volume,
+    .live .section {
+        display: none;
+    }
+    .time {
+        min-width: 0;
     }
     .preset-grid {
         grid-template-columns: 1fr;

@@ -67,7 +67,11 @@ export function ExportPanel() {
         if (!buffer || !st.env || !st.interp) return;
         const project = projectStore.get();
         let writable: FileSystemWritableFileStream | undefined;
-        if (toDisk && canPick && webcodecs) {
+        let streamIt = toDisk;
+        if (!streamIt && canPick && webcodecs && est > 700e6) {
+            streamIt = window.confirm(`This video will be about ${formatBytes(est)}. Stream it straight to a file on disk to avoid running out of memory?`);
+        }
+        if (streamIt && canPick && webcodecs) {
             try {
                 const picker = (window as unknown as { showSaveFilePicker: SavePicker }).showSaveFilePicker;
                 const handle = await picker({
@@ -150,8 +154,8 @@ export function ExportPanel() {
                     label="Format"
                     path="export.format"
                     options={[
-                        { value: 'mp4', label: 'MP4 (H.264 + AAC)' },
-                        { value: 'webm', label: 'WebM (VP9)' },
+                        { value: 'mp4', label: 'MP4 · H.264' },
+                        { value: 'webm', label: 'WebM · VP9' },
                     ]}
                 />
                 <Segmented
@@ -195,7 +199,7 @@ export function ExportPanel() {
             <Section title="Render">
                 {webcodecs && canPick && (
                     <label className="ctl toggle">
-                        <span className="lbl">Save straight to disk</span>
+                        <span className="lbl">Stream to disk</span>
                         <button type="button" className={`switch${toDisk ? ' on' : ''}`} onClick={() => setToDisk(!toDisk)}>
                             <i />
                         </button>

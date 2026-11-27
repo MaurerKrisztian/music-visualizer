@@ -10,6 +10,8 @@ export function Preview() {
     const progress = useStore(appStore, (s) => s.progress);
     const message = useStore(appStore, (s) => s.message);
     const exporting = useStore(appStore, (s) => s.exporting);
+    const isDemo = useStore(appStore, (s) => !!s.track?.isDemo);
+    const playing = useStore(appStore, (s) => s.playing);
 
     useEffect(() => {
         if (!ref.current) return;
@@ -46,6 +48,9 @@ export function Preview() {
                     <div className="overlay error">
                         <div className="overlay-msg">WebGL2 is required: {preview.error}</div>
                     </div>
+                )}
+                {isDemo && stage === 'ready' && !playing && (
+                    <div className="demo-pill">Demo track · drop your own music anywhere, or press Space to play</div>
                 )}
                 {exporting && <div className="overlay dim" />}
             </div>

@@ -122,7 +122,10 @@ class PreviewController {
         this.lastT = t;
         const f: Features = ex.compute(t, dt, reactOptions(p));
         const duration = appStore.get().track?.duration ?? 0;
-        engine.render(p, f, { time: t, dt, rangeStart: 0, rangeEnd: duration || 1, frame: this.frame++ }, engineImages(p));
+        // fades only while playing (and in exports) so a paused frame is never black
+        const rangeStart = playing ? 0 : -1e6;
+        const rangeEnd = playing ? duration || 1 : 1e6;
+        engine.render(p, f, { time: t, dt, rangeStart, rangeEnd, frame: this.frame++ }, engineImages(p));
 
         live.time = t;
         live.kick = f.kick;

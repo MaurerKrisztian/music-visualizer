@@ -346,7 +346,7 @@ export class Engine {
         this.fxB.bind();
         gl.disable(gl.BLEND);
         if (fx.trails > 0.001 && this.fbValid) {
-            const decay = Math.pow(0.55 + 0.42 * fx.trails, dt * 60);
+            const decay = Math.pow(0.5 + 0.38 * fx.trails, dt * 60);
             const fp = this.progs.feedback.use();
             this.common(fp, f, palette, move, spin, W, H)
                 .tex('uPrev', this.fxA.texture)
@@ -455,7 +455,7 @@ export class Engine {
             const rangeLen = Math.max(1e-3, info.rangeEnd - info.rangeStart);
             const pg = this.progs.progress.use();
             this.common(pg, f, palette, move, spin, W, H)
-                .f('uProgress', Math.max(0, Math.min(1, (t - info.rangeStart) / rangeLen)))
+                .f('uProgress', Math.max(0, Math.min(1, rangeLen > 1e5 ? f.progress : (t - info.rangeStart) / rangeLen)))
                 .f('uPrY', pr.y * hsy)
                 .f('uPrThick', pr.thickness)
                 .v3('uPrColor', hexToRgb(pr.color))

@@ -19,7 +19,11 @@ void main() {
     vec2 uv = p / (uRes / min(uRes.x, uRes.y)) + 0.5;
     vec4 c = texture(uPrev, uv);
     float inside = step(0.0, uv.x) * step(uv.x, 1.0) * step(0.0, uv.y) * step(uv.y, 1.0);
-    outColor = c * uDecay * inside;
+    // soft cap so long trails never wash the frame out
+    vec3 col = c.rgb * uDecay;
+    float m = max(col.r, max(col.g, col.b));
+    col *= m > 0.9 ? (0.9 + 0.6 * tanh((m - 0.9) / 0.6)) / m : 1.0;
+    outColor = vec4(col, c.a * uDecay) * inside;
 }`;
 
 // 13-tap downsample (Jimenez 2014) with optional soft-threshold prefilter.

@@ -28,7 +28,7 @@ export const PRESETS: Preset[] = [
             center: { enabled: true, radius: 0.15, ring: 0.6, ringGlow: 0.7, shockRings: 0.6 },
             particles: { mode: 'warp', count: 320, size: 0.4, speed: 0.5, kickBoost: 0.7, colorMode: 'palette' },
             text: { font: 'Orbitron', glitch: 0.25, glow: 0.5 },
-            fx: { bloom: 0.8, shake: 0.4, zoomPunch: 0.45, chromatic: 0.3, glitch: 0.2, shockwave: 0.4, flash: 0.35, trails: 0.2, grain: 0.1 },
+            fx: { bloom: 0.75, shake: 0.4, zoomPunch: 0.45, chromatic: 0.3, glitch: 0.2, shockwave: 0.4, flash: 0.35, trails: 0.1, grain: 0.1 },
         },
     },
     {
@@ -74,9 +74,9 @@ export const PRESETS: Preset[] = [
             overlays: { lasers: 0, smoke: 0, fire: 0 },
             spectrum: { style: 'circle-scope', radius: 0.15, height: 0.16, thickness: 0.006, colorMode: 'rainbow', kickScale: 0.8 },
             center: { enabled: true, radius: 0.14, ring: 0.5, ringGlow: 0.8, shockRings: 0.8, spin: 0.3 },
-            particles: { mode: 'warp', count: 500, size: 0.35, speed: 0.8, kickBoost: 1, colorMode: 'palette' },
+            particles: { mode: 'warp', count: 260, size: 0.3, speed: 0.8, kickBoost: 1, colorMode: 'palette' },
             text: { font: 'Rubik Glitch', glitch: 0.7, glow: 0.6 },
-            fx: { bloom: 0.8, shake: 0.7, zoomPunch: 0.6, chromatic: 0.6, glitch: 0.6, shockwave: 0.6, flash: 0.3, trails: 0.55, trailZoom: 0.6, trailSpin: 0.25, grain: 0.15 },
+            fx: { bloom: 0.6, bloomThreshold: 0.65, shake: 0.7, zoomPunch: 0.6, chromatic: 0.6, glitch: 0.6, shockwave: 0.6, flash: 0.25, trails: 0.45, trailZoom: 0.6, trailSpin: 0.25, grain: 0.15 },
         },
     },
     {

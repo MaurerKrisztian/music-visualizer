@@ -82,8 +82,9 @@ vec4 radialBars(vec2 p) {
     float sd = sdRoundBox(vec2(lx, ly - len * 0.5), vec2(bw * 0.5, len * 0.5), rr);
     float aa = px() * 1.2;
     float m = smoothstep(aa, -aa, sd);
-    float glow = exp(-max(sd, 0.0) / 0.006) * 0.25;
-    vec3 c = spColor(x, v) * (0.7 + 0.7 * v);
+    float glow = exp(-max(sd, 0.0) / 0.005) * 0.18;
+    vec3 c = spColor(x, v) * (0.75 + 0.6 * v);
+    c = mix(c, vec3(1.0), smoothstep(0.55, 1.0, ly / max(len, 1e-4)) * 0.35 * v);
     return vec4(c * (m + glow), m);
 }
 

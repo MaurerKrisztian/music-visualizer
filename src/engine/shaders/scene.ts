@@ -160,7 +160,7 @@ vec3 background(vec2 uv, vec2 p) {
     vec3 wall = pal(cell.x / sides * 0.5 + 0.15) * (0.035 + 0.03 * face) * (0.6 + 0.6 * uBass);
     vec3 col = (wall + rc * ringI * pulse + uColB * edgeI * (0.35 + 0.8 * uMid)) * fog * far;
     col += pal(hash21(cell) + 0.3) * panel * 0.25 * fog * far;
-    col += uColA * exp(-r * 9.0) * (0.3 + 0.6 * uBass + 0.7 * uKick);
+    col += uColA * exp(-r * 11.0) * (0.12 + 0.3 * uBass + 0.45 * uKick);
     return col * uBgBright * 1.35;
 }`,
 
@@ -318,9 +318,10 @@ vec3 background(vec2 uv, vec2 p) {
     vec2 c = vec2(0.92 + 0.08 * sin(uMove * 0.3), 0.62 + 0.08 * cos(uMove * 0.21)) * (1.0 + 0.04 * uBass + 0.03 * uKick);
     for (int i = 0; i < 9; i++) {
         z = abs(z) / max(dot(z, z), 1e-3) - c;
-        col += pal(float(i) * 0.09 + uTime * 0.04 + r) * exp(-length(z) * mix(1.6, 0.8, uBgTwist)) * 0.55;
+        col += pal(float(i) * 0.09 + uTime * 0.04 + r) * exp(-length(z) * mix(2.6, 1.6, uBgTwist)) * 0.3;
     }
-    return col * (0.6 + 0.9 * uKick + 0.4 * uEnergy) * uBgBright;
+    col = col * col * 1.8;
+    return col * (0.55 + 0.9 * uKick + 0.35 * uEnergy) * uBgBright;
 }`,
 
     void: `

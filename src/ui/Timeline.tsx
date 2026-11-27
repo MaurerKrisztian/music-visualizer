@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { SectionKind } from '../audio/analysis';
 import { live } from '../app/preview';
 import { appStore, player, seek } from '../app/session';
-import { useProject, useStore } from '../project/store';
+import { projectStore, useProject, useStore } from '../project/store';
 import { formatTime } from './format';
 
 const SECTION_COLORS: Record<SectionKind, string> = {
@@ -25,6 +25,8 @@ export function Timeline() {
     const rangeEnd = useProject((p) => p.export.rangeEnd);
     const [width, setWidth] = useState(800);
     const [hover, setHover] = useState<number | null>(null);
+    const drag = useRef<'start' | 'end' | null>(null);
+    const hasRange = rangeStart !== null || rangeEnd !== null;
 
     useEffect(() => {
         const el = wrap.current;
@@ -147,18 +149,43 @@ export function Timeline() {
         return Math.max(0, Math.min(duration, ((clientX - r.left) / r.width) * duration));
     };
 
+    const handleAt = (clientX: number): 'start' | 'end' | null => {
+        if (!hasRange || !wrap.current || !duration) return null;
+        const r = wrap.current.getBoundingClientRect();
+        const xa = r.left + ((rangeStart ?? 0) / duration) * r.width;
+        const xb = r.left + ((rangeEnd ?? duration) / duration) * r.width;
+        if (Math.abs(clientX - xa) < 7) return 'start';
+        if (Math.abs(clientX - xb) < 7) return 'end';
+        return null;
+    };
+
     return (
         <div
             className="timeline"
             ref={wrap}
             onPointerDown={(e) => {
                 (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
-                seek(timeAt(e.clientX));
+                drag.current = handleAt(e.clientX);
+                if (!drag.current) seek(timeAt(e.clientX));
             }}
             onPointerMove={(e) => {
-                setHover(timeAt(e.clientX));
-                if (e.buttons === 1) seek(timeAt(e.clientX));
+                const t = timeAt(e.clientX);
+                setHover(t);
+                (e.currentTarget as HTMLElement).style.cursor = drag.current || handleAt(e.clientX) ? 'ew-resize' : 'pointer';
+                if (e.buttons !== 1) return;
+                if (drag.current) {
+                    const which = drag.current;
+                    projectStore.update((p) => {
+                        const a = p.export.rangeStart ?? 0;
+                        const b = p.export.rangeEnd ?? duration;
+                        if (which === 'start') p.export.rangeStart = Math.min(t, b - 0.5);
+                        else p.export.rangeEnd = Math.max(t, a + 0.5);
+                    });
+                } else {
+                    seek(t);
+                }
             }}
+            onPointerUp={() => (drag.current = null)}
             onPointerLeave={() => setHover(null)}
         >
             <canvas ref={canvas} />
