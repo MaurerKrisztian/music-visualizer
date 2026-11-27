@@ -15,12 +15,14 @@ A browser music visualizer built for **hardstyle, rawstyle, hardcore, uptempo an
   - lasers, fire with pyro jets, and smoke
   - post effects: bloom, shake, zoom punch, shockwave ripple, glitch, chromatic aberration, strobe, trails and film grain
 - **Section-aware dynamics**: calm breakdowns, tension that builds into the drop, and maximum impact on the drop.
-- **12 genre presets** (Euphoric, Rawstyle, Uptempo Terror, Frenchcore, Gabber, Mainstage Pyro and more).
+- **12 genre presets** (Euphoric, Rawstyle, Uptempo Terror, Frenchcore, Gabber, Mainstage Pyro and more). The gallery thumbnails are rendered from your own track.
+- **Branding**: intro title card, artist/title text with 20+ fonts (or upload your own), a corner watermark logo, and a separate drop palette.
 - **Frame-accurate export**:
   - formats: MP4 (H.264 + AAC) or WebM (VP9 + Opus)
   - sizes: 720p to 4K, 30 or 60 fps, plus 9:16 Shorts/TikTok, square and 4:5
-  - one-click drop clip
+  - one-click drop clip, or drag the range on the timeline
   - optional streaming straight to disk
+  - full-resolution PNG snapshot for thumbnails
   - falls back to real-time recording when WebCodecs is missing
 - Autosave, undo/redo, and `.canvasbeats` project files with embedded images and fonts. Drag and drop for audio, images, fonts and projects.
 

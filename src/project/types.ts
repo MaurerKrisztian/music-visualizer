@@ -38,6 +38,11 @@ export interface Project {
         hueSpeed: number;
         /** degrees added at every detected drop */
         dropHueShift: number;
+        /** blend to a separate palette when the music is intense (drops) */
+        dropColors: boolean;
+        da: string;
+        db: string;
+        dc: string;
     };
     background: {
         mode: BackgroundMode;

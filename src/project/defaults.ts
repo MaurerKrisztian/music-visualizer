@@ -6,7 +6,7 @@ export function createDefaultProject(): Project {
         name: 'Untitled',
         meta: { artist: 'ARTIST NAME', title: 'Track Title' },
         sync: { sensitivity: 0.5, bpmOverride: null, beatOffsetMs: 0, kickDecay: 0.18, previewOffsetMs: 0 },
-        palette: { a: '#00e5ff', b: '#7a2cff', c: '#ff2bd6', hueSpeed: 0, dropHueShift: 40 },
+        palette: { a: '#00e5ff', b: '#7a2cff', c: '#ff2bd6', hueSpeed: 0, dropHueShift: 40, dropColors: false, da: '#ff1744', db: '#ff9100', dc: '#ffffff' },
         background: {
             mode: 'tunnel',
             imageId: null,

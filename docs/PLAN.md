@@ -29,13 +29,15 @@ Every frame is a pure function of **(project settings, audio features at time t)
 - [x] Frame-accurate MP4/WebM export from 720p to 4K at 30/60 fps, plus 9:16, 1:1 and 4:5, drop-clip range and stream to disk.
 - [x] Autosave, session restore (last track and images), undo/redo, project files, drag and drop, keyboard shortcuts.
 - [x] Original procedurally generated demo track (150 BPM, intro, breakdown, build-up, drop).
+- [x] Preset gallery with stills rendered by the engine at the first drop of your track.
+- [x] Intro title card, corner watermark (channel logo), separate drop palette, and full-resolution PNG snapshot for thumbnails.
+- [x] Draggable export range on the timeline; exports keep full speed in background tabs (wake lock, progress in the tab title).
 
 ## Next
 
-- [ ] Preset thumbnails rendered by the engine.
-- [ ] Timeline: drag handles for the export range; add or remove drop markers by hand.
-- [ ] Multiple text layers, a corner watermark logo, and lyrics/subtitles from SRT files.
-- [ ] Per-section looks (switch background or palette automatically on each drop).
+- [ ] Timeline: add or remove drop markers by hand.
+- [ ] Lyrics/subtitles from SRT files and multiple text layers.
+- [ ] Per-section looks beyond colours (switch background or spectrum style on each drop).
 - [ ] Batch export (16:9 and 9:16 in one go).
 - [ ] Render the export in a worker with OffscreenCanvas so the UI stays responsive.
 - [ ] Beat-synced camera cuts and more backgrounds (3D city, crowd silhouettes, VHS).

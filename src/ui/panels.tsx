@@ -221,6 +221,7 @@ export function AudioPanel() {
 
 export function ScenePanel() {
     const mode = useProject((p) => p.background.mode);
+    const dropColors = useProject((p) => p.palette.dropColors);
     const fire = useProject((p) => p.overlays.fire);
     return (
         <div className="panel">
@@ -247,6 +248,14 @@ export function ScenePanel() {
                         />
                     ))}
                 </div>
+                <Toggle label="Drop colours" path="palette.dropColors" hint="Blend to a second palette when the track gets intense (drops)" />
+                {dropColors && (
+                    <div className="palette-row">
+                        <Color label="Drop primary" path="palette.da" />
+                        <Color label="Drop secondary" path="palette.db" />
+                        <Color label="Drop accent" path="palette.dc" />
+                    </div>
+                )}
                 <Slider label="Hue drift" path="palette.hueSpeed" min={-30} max={30} step={0.5} unit="°/s" />
                 <Slider label="Hue jump on drop" path="palette.dropHueShift" min={0} max={180} step={1} unit="°" />
             </Section>

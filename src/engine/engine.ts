@@ -293,7 +293,14 @@ export class Engine {
 
         // ---- derived, deterministic per-frame values --------------------------------
         const hue = P.palette.hueSpeed * t + P.palette.dropHueShift * f.dropCount;
-        const palette: RGB[] = [P.palette.a, P.palette.b, P.palette.c].map((c) => rotateHue(hexToRgb(c), hue));
+        const pl = P.palette;
+        const hot = pl.dropColors ? Math.min(1, Math.max(0, (f.intensity - 0.42) / 0.33)) : 0;
+        const hotS = hot * hot * (3 - 2 * hot);
+        const calmCols = [pl.a, pl.b, pl.c].map(hexToRgb);
+        const hotCols = pl.dropColors ? [pl.da, pl.db, pl.dc].map(hexToRgb) : calmCols;
+        const palette: RGB[] = calmCols.map((c, i) =>
+            rotateHue([c[0] + (hotCols[i][0] - c[0]) * hotS, c[1] + (hotCols[i][1] - c[1]) * hotS, c[2] + (hotCols[i][2] - c[2]) * hotS], hue),
+        );
         const dyn = 1 - fx.dynamics + fx.dynamics * Math.min(1, Math.max(0.12, f.intensity * 1.25));
         const build = f.build * fx.buildBoost;
         const bg = P.background;

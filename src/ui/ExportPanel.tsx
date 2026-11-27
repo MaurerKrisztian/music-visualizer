@@ -29,6 +29,7 @@ export function ExportPanel() {
     const ready = useStore(appStore, (s) => s.stage === 'ready');
     const [toDisk, setToDisk] = useState(false);
     const [job, setJob] = useState<Job | null>(null);
+    const [snapBusy, setSnapBusy] = useState(false);
     const pvCanvas = useRef<HTMLCanvasElement>(null);
     const webcodecs = supportsWebCodecs();
     const canPick = typeof (window as unknown as { showSaveFilePicker?: SavePicker }).showSaveFilePicker === 'function';
@@ -134,6 +135,30 @@ export function ExportPanel() {
         }
     };
 
+    const snapshot = async () => {
+        const buffer = getAudioBuffer();
+        const st = appStore.get();
+        if (!buffer || !st.env || !st.interp) return;
+        setSnapBusy(true);
+        try {
+            const project = projectStore.get();
+            await ensureFont(project.text.font);
+            const { renderSnapshot } = await import('../export/snapshot');
+            const blob = await renderSnapshot(
+                project,
+                { buffer, env: st.env, interp: st.interp, images: engineImages(project), react: reactOptions(project), fontWeight, fontsVersion },
+                player.currentTime,
+                res.w,
+                res.h,
+            );
+            downloadBlob(blob, `${baseName} ${formatTime(player.currentTime).replace(':', '-')}.png`);
+        } catch (err) {
+            window.alert(err instanceof Error ? err.message : String(err));
+        } finally {
+            setSnapBusy(false);
+        }
+    };
+
     const p = job?.progress;
     const pct = p ? (p.frame / Math.max(1, p.totalFrames)) * 100 : (job?.realtime ?? 0) * 100;
     const running = !!job && !job.result && !job.error;
@@ -215,6 +240,13 @@ export function ExportPanel() {
                 )}
                 <button className="btn primary big" disabled={!ready || running || len < 0.5 || (!webcodecs && !supportsRealtime())} onClick={() => void run()}>
                     <IconFilm /> Render {ex.format.toUpperCase()}
+                </button>
+            </Section>
+
+            <Section title="Still image" defaultOpen={false}>
+                <Hint>Saves the frame at the playhead as a {res.w}×{res.h} PNG, handy for YouTube thumbnails and cover posts.</Hint>
+                <button className="btn" disabled={!ready || running || snapBusy} onClick={() => void snapshot()}>
+                    {snapBusy ? 'Rendering…' : 'Save frame as PNG'}
                 </button>
             </Section>
 
