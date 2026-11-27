@@ -32,11 +32,12 @@ Every frame is a pure function of **(project settings, audio features at time t)
 - [x] Preset gallery with stills rendered by the engine at the first drop of your track.
 - [x] Intro title card, corner watermark (channel logo), separate drop palette, and full-resolution PNG snapshot for thumbnails.
 - [x] Draggable export range on the timeline; exports keep full speed in background tabs (wake lock, progress in the tab title).
+- [x] Lyrics and subtitles from .lrc/.srt files; beat-synced camera cuts (a new framing on every bar during drops).
 
 ## Next
 
 - [ ] Timeline: add or remove drop markers by hand.
-- [ ] Lyrics/subtitles from SRT files and multiple text layers.
+- [ ] Multiple free text layers (e.g. label name, "OUT NOW").
 - [ ] Per-section looks beyond colours (switch background or spectrum style on each drop).
 - [ ] Batch export (16:9 and 9:16 in one go).
 - [ ] Render the export in a worker with OffscreenCanvas so the UI stays responsive.

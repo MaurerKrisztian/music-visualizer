@@ -134,6 +134,14 @@ export interface Project {
         /** seconds the title is shown big in the centre at the start (0 = off) */
         intro: number;
     };
+    lyrics: {
+        cues: { start: number; end: number; text: string }[];
+        y: number;
+        size: number;
+        color: string;
+        glow: number;
+        uppercase: boolean;
+    };
     watermark: {
         imageId: string | null;
         corner: 'tl' | 'tr' | 'bl' | 'br';
@@ -167,6 +175,8 @@ export interface Project {
         dynamics: number;
         /** extra shake / zoom ramp during build-ups */
         buildBoost: number;
+        /** beat-synced camera cuts (new angle every bar) in intense parts */
+        cuts: number;
         fadeIn: number;
         fadeOut: number;
     };

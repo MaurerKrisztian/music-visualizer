@@ -12,6 +12,7 @@ import { CENTER_SHADER, IMAGE_SHADER, PARTICLE_FS, PARTICLE_VS, PROGRESS_SHADER,
 import { COPY_SHADER, DOWN_SHADER, FEEDBACK_SHADER, FINAL_SHADER, UP_SHADER } from './shaders/post';
 import { backgroundShader, OVERLAY_SHADER } from './shaders/scene';
 import { TextRenderer } from './text';
+import { activeCue } from '../project/lyrics';
 
 export interface ImageSource {
     id: string;
@@ -449,7 +450,7 @@ export class Engine {
             const glitchOn = hash1(Math.floor(t * 9) + lastKickIdx * 0.37) < 0.2 + tx.glitch * 0.6;
             const dropB = f.dropAge < 50 ? f.drop * Math.exp(-f.dropAge * (1 / 0.28 - 1 / 1.6)) : 0;
             let glitchT = tx.glitch * (Math.pow(kick, 3) * 0.9 + dropB * 0.9) * (glitchOn ? 1 : 0.15) * dyn;
-            let px = block.cx * hsx;
+            let px = block.cx * hsx + block.shift;
             let py = block.cy * hsy;
             let scale = 1 + tx.pulse * k15 * 0.07;
             // intro title card: big in the centre, then glides into place
@@ -470,7 +471,28 @@ export class Engine {
                 .v2('uTextHalf', block.halfW, block.halfH)
                 .f('uTextScale', scale)
                 .f('uGlitchT', Math.min(1, glitchT))
-                .f('uGlitchSeed', Math.floor(t * 20));
+                .f('uGlitchSeed', Math.floor(t * 20))
+                .f('uTextAlpha', 1);
+            this.draw();
+        }
+
+        // lyrics / subtitles
+        const cue = P.lyrics.cues.length ? activeCue(P.lyrics.cues, t) : null;
+        if (cue) {
+            const lb = this.text.updateLyric(cue.text, P.lyrics, tx, minDim, weight, this.opts.fontsVersion ? this.opts.fontsVersion() : 0);
+            const age = t - cue.start;
+            const left = cue.end - t;
+            const alpha = Math.min(1, age / 0.12, left / 0.2);
+            const pop = 1 + 0.08 * Math.exp(-age / 0.08) + tx.pulse * k15 * 0.04;
+            const lp = this.progs.text.use();
+            this.common(lp, f, palette, move, spin, W, H)
+                .tex('uTextTex', lb.texture)
+                .v2('uTextPos', 0, lb.cy * hsy)
+                .v2('uTextHalf', lb.halfW, lb.halfH)
+                .f('uTextScale', pop)
+                .f('uGlitchT', Math.max(0, 0.5 - age * 4) + tx.glitch * Math.pow(kick, 4) * 0.4 * dyn)
+                .f('uGlitchSeed', Math.floor(t * 20) + 7)
+                .f('uTextAlpha', Math.max(0, alpha));
             this.draw();
         }
 
@@ -540,7 +562,19 @@ export class Engine {
         const shakeX = shakeAmp * noise1(st, 1);
         const shakeY = shakeAmp * noise1(st, 2);
         const shakeRot = shakeAmp * 0.8 * noise1(st * 0.7, 3);
-        const zoom = 1 + shakeAmp * 2.5 + fx.zoomPunch * (Math.pow(kick, 2) * 0.055 + f.drop * 0.05) * dyn + build * 0.05;
+        let zoom = 1 + shakeAmp * 2.5 + fx.zoomPunch * (Math.pow(kick, 2) * 0.055 + f.drop * 0.05) * dyn + build * 0.05;
+        // beat-synced camera cuts: a new framing on every bar in intense parts
+        let cutRot = 0;
+        let cutX = 0;
+        let cutY = 0;
+        const cutAmt = fx.cuts * Math.min(1, Math.max(0, (f.intensity - 0.5) / 0.25));
+        if (cutAmt > 0.001) {
+            const b = f.barIndex;
+            cutRot = (hash1(b * 1.31 + 7) - 0.5) * 0.14 * cutAmt;
+            cutX = (hash1(b * 2.07 + 3) - 0.5) * 0.06 * cutAmt;
+            cutY = (hash1(b * 0.73 + 11) - 0.5) * 0.04 * cutAmt;
+            zoom *= 1 + (0.03 + hash1(b * 1.97 + 5) * 0.1) * cutAmt + Math.abs(cutRot) * 1.1;
+        }
         const dropBurst = f.dropAge < 50 ? f.drop * Math.exp(-f.dropAge * (1 / 0.28 - 1 / 1.6)) : 0;
         const glitchSeed = Math.floor(t * 24);
         const kickIdx = Math.round(f.time * 1000 - f.kickAge * 1000);
@@ -572,8 +606,8 @@ export class Engine {
             .f('uSaturation', fx.saturation)
             .f('uFade', fadeIn * fadeOut)
             .f('uLetterbox', fx.letterbox)
-            .v2('uShake', shakeX, shakeY)
-            .f('uShakeRot', shakeRot)
+            .v2('uShake', shakeX + cutX, shakeY + cutY)
+            .f('uShakeRot', shakeRot + cutRot)
             .f('uZoom', zoom)
             .f('uFrame', info.frame);
         this.draw();

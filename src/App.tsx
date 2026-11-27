@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { appStore, loadAudio, player, restoreSession, seek, startAutosave, toast, togglePlay } from './app/session';
+import { appStore, loadAudio, loadLyricsFile, player, restoreSession, seek, startAutosave, toast, togglePlay } from './app/session';
 import { safeFileName } from './export/settings';
 import { assets } from './project/assets';
 import { ensureFont } from './project/fonts';
@@ -26,6 +26,7 @@ const isAudio = (f: File) => f.type.startsWith('audio/') || /\.(mp3|wav|flac|ogg
 const isImage = (f: File) => f.type.startsWith('image/');
 const isFont = (f: File) => /\.(ttf|otf|woff2?)$/i.test(f.name);
 const isProject = (f: File) => /\.(canvasbeats|json)$/i.test(f.name);
+const isLyrics = (f: File) => /\.(lrc|srt)$/i.test(f.name);
 
 async function handleFiles(files: FileList | File[]) {
     for (const f of Array.from(files)) {
@@ -44,6 +45,8 @@ async function handleFiles(files: FileList | File[]) {
             toast(`Font "${f.name}" loaded.`);
         } else if (isProject(f)) {
             await openProjectFile(f);
+        } else if (isLyrics(f)) {
+            await loadLyricsFile(f);
         } else {
             toast(`Unsupported file: ${f.name}`, 'error');
         }
@@ -246,7 +249,7 @@ export default function App() {
                 <div className="drop-overlay">
                     <div>
                         <b>Drop it</b>
-                        <span>audio · cover art / images · fonts · .canvasbeats projects</span>
+                        <span>audio · cover art / images · fonts · .lrc / .srt lyrics · .canvasbeats projects</span>
                     </div>
                 </div>
             )}

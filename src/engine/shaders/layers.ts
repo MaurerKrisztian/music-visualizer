@@ -296,6 +296,7 @@ uniform vec2 uTextHalf;
 uniform float uTextScale;
 uniform float uGlitchT;
 uniform float uGlitchSeed;
+uniform float uTextAlpha;
 void main() {
     vec2 p = centered(vUv);
     vec2 q = (p - uTextPos) / uTextScale;
@@ -315,10 +316,10 @@ void main() {
         float aB = texture(uTextTex, tuv - vec2(split, 0.0)).a;
         vec3 fr = vec3(1.0, 0.1, 0.25) * aR * (1.0 - c.a);
         vec3 fb = vec3(0.1, 0.6, 1.0) * aB * (1.0 - c.a);
-        outColor = vec4(c.rgb + (fr + fb) * 0.8, max(c.a, max(aR, aB) * 0.6));
+        outColor = vec4(c.rgb + (fr + fb) * 0.8, max(c.a, max(aR, aB) * 0.6)) * uTextAlpha;
         return;
     }
-    outColor = c;
+    outColor = c * uTextAlpha;
 }`;
 
 export const IMAGE_SHADER = `${HEADER}

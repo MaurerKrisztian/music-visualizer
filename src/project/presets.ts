@@ -44,7 +44,7 @@ export const PRESETS: Preset[] = [
             center: { enabled: true, radius: 0.15, ring: 0.8, ringGlow: 0.9, shockRings: 0.9 },
             particles: { mode: 'embers', count: 450, size: 0.45, speed: 0.6, kickBoost: 0.9, colorMode: 'fire' },
             text: { font: 'Black Ops One', glitch: 0.5, glow: 0.45, color: '#ffffff', subColor: '#ffb199' },
-            fx: { bloom: 0.75, shake: 0.75, zoomPunch: 0.6, chromatic: 0.5, glitch: 0.45, shockwave: 0.65, flash: 0.35, grain: 0.22, contrast: 1.15, vignette: 0.7, trails: 0.1 },
+            fx: { bloom: 0.75, shake: 0.75, zoomPunch: 0.6, chromatic: 0.5, glitch: 0.45, shockwave: 0.65, flash: 0.35, grain: 0.22, contrast: 1.15, vignette: 0.7, trails: 0.1, cuts: 0.45 },
         },
     },
     {
@@ -60,7 +60,7 @@ export const PRESETS: Preset[] = [
             center: { enabled: true, radius: 0.14, ring: 1, ringGlow: 0.6, shockRings: 1 },
             particles: { mode: 'sparks', count: 500, size: 0.35, speed: 0.8, kickBoost: 1, colorMode: 'white' },
             text: { font: 'UnifrakturMaguntia', uppercase: false, spacing: 0.04, size: 0.065, glitch: 0.8, glow: 0.35, color: '#ffffff', subColor: '#ff4d5e' },
-            fx: { bloom: 0.6, bloomThreshold: 0.6, shake: 0.9, zoomPunch: 0.7, chromatic: 0.75, glitch: 0.8, shockwave: 0.8, flash: 0.45, strobe: 0.25, scanlines: 0.35, grain: 0.35, contrast: 1.25, saturation: 0.95, vignette: 0.75, dynamics: 0.5 },
+            fx: { bloom: 0.6, bloomThreshold: 0.6, shake: 0.9, zoomPunch: 0.7, chromatic: 0.75, glitch: 0.8, shockwave: 0.8, flash: 0.45, strobe: 0.25, scanlines: 0.35, grain: 0.35, contrast: 1.25, saturation: 0.95, vignette: 0.75, dynamics: 0.5, cuts: 0.7 },
         },
     },
     {
@@ -76,7 +76,7 @@ export const PRESETS: Preset[] = [
             center: { enabled: true, radius: 0.14, ring: 0.5, ringGlow: 0.8, shockRings: 0.8, spin: 0.3 },
             particles: { mode: 'warp', count: 260, size: 0.3, speed: 0.8, kickBoost: 1, colorMode: 'palette' },
             text: { font: 'Rubik Glitch', glitch: 0.7, glow: 0.6 },
-            fx: { bloom: 0.6, bloomThreshold: 0.65, shake: 0.7, zoomPunch: 0.6, chromatic: 0.6, glitch: 0.6, shockwave: 0.6, flash: 0.25, trails: 0.45, trailZoom: 0.6, trailSpin: 0.25, grain: 0.15 },
+            fx: { bloom: 0.6, bloomThreshold: 0.65, shake: 0.7, zoomPunch: 0.6, chromatic: 0.6, glitch: 0.6, shockwave: 0.6, flash: 0.25, trails: 0.45, trailZoom: 0.6, trailSpin: 0.25, grain: 0.15, cuts: 0.5 },
         },
     },
     {
@@ -219,6 +219,7 @@ export function applyPreset(current: Project, preset: Preset): Project {
     fresh.background.imageId = current.background.imageId;
     fresh.center.imageId = current.center.imageId;
     fresh.watermark = { ...current.watermark };
+    fresh.lyrics = { ...current.lyrics, cues: current.lyrics.cues };
     fresh.text.intro = current.text.intro;
     return fresh;
 }

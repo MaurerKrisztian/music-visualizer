@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { presetThumb, renderThumbs, subscribeThumbs, thumbsVersion } from '../app/thumbs';
-import { appStore, loadAudio, loadDemo, seek, toast } from '../app/session';
+import { appStore, loadAudio, loadDemo, loadLyricsFile, seek, toast } from '../app/session';
 import { assets } from '../project/assets';
 import { customFontList, ensureFont, FONTS } from '../project/fonts';
 import { applyPreset, PRESETS } from '../project/presets';
@@ -413,6 +413,8 @@ export function TextPanel() {
     const progress = useProject((p) => p.progress.enabled);
     const stroke = useProject((p) => p.text.stroke);
     const watermark = useProject((p) => !!p.watermark.imageId);
+    const cueCount = useProject((p) => p.lyrics.cues.length);
+    const lyricInput = useRef<HTMLInputElement>(null);
     useAssets();
     const fontInput = useRef<HTMLInputElement>(null);
     const custom = customFontList();
@@ -499,6 +501,40 @@ export function TextPanel() {
                     </>
                 )}
             </Section>
+            <Section title="Lyrics / subtitles" defaultOpen={false}>
+                <Hint>Load time-coded lyrics (.lrc) or subtitles (.srt). Each line pops in on time, using the title font.</Hint>
+                <div className="row">
+                    <button className="btn small" onClick={() => lyricInput.current?.click()}>
+                        Load .lrc / .srt…
+                    </button>
+                    {cueCount > 0 && (
+                        <button className="btn small ghost" onClick={() => setProject('lyrics.cues', [])}>
+                            Clear ({cueCount} lines)
+                        </button>
+                    )}
+                </div>
+                <input
+                    ref={lyricInput}
+                    type="file"
+                    accept=".lrc,.srt,.txt"
+                    hidden
+                    onChange={async (e) => {
+                        const f = e.target.files?.[0];
+                        e.target.value = '';
+                        if (!f) return;
+                        await loadLyricsFile(f);
+                    }}
+                />
+                {cueCount > 0 && (
+                    <>
+                        <Slider label="Position Y" path="lyrics.y" min={-1} max={1} />
+                        <Slider label="Size" path="lyrics.size" min={0.015} max={0.12} step={0.001} digits={3} />
+                        <Color label="Colour" path="lyrics.color" />
+                        <Slider label="Glow" path="lyrics.glow" />
+                        <Toggle label="UPPERCASE" path="lyrics.uppercase" />
+                    </>
+                )}
+            </Section>
             <Section title="Channel logo (watermark)">
                 <ImageSlot label="Image" path="watermark.imageId" hint="PNG with transparency works best" />
                 {watermark && (
@@ -569,6 +605,7 @@ export function FxPanel() {
                 {strobe > 0.2 && <Hint>⚠ Strong strobe can trigger photosensitive viewers. Consider a warning in your video description.</Hint>}
                 <Slider label="Breakdown calm" path="fx.dynamics" hint="How much calmer breakdowns are than drops (uses the detected intensity)" />
                 <Slider label="Build-up tension" path="fx.buildBoost" hint="Extra shake and zoom ramping into each drop" />
+                <Slider label="Camera cuts" path="fx.cuts" hint="Jumps to a new camera angle on every bar during intense parts, like a VJ edit" />
             </Section>
             <Section title="Glow & colour">
                 <Slider label="Bloom" path="fx.bloom" min={0} max={1.5} />

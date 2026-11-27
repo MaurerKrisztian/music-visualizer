@@ -7,8 +7,9 @@ import { DEFAULT_REACT, FeatureExtractor, type ReactOptions } from '../audio/fea
 import { Player } from '../audio/player';
 import { assets } from '../project/assets';
 import { createDefaultProject, normalizeProject } from '../project/defaults';
+import { parseLyrics } from '../project/lyrics';
 import { idbGet, idbPut } from '../project/idb';
-import { projectStore, Store } from '../project/store';
+import { projectStore, setProject, Store } from '../project/store';
 import type { Project } from '../project/types';
 import demoUrl from '../assets/demo.mp3';
 
@@ -243,4 +244,14 @@ export async function restoreSession(): Promise<void> {
     const last = await idbGet<{ blob: Blob; name: string }>('kv', 'lastAudio').catch(() => undefined);
     if (last?.blob) await loadAudio(last.blob, last.name, { persist: false });
     else await loadDemo();
+}
+
+export async function loadLyricsFile(f: File): Promise<void> {
+    const cues = parseLyrics(f.name, await f.text());
+    if (!cues.length) {
+        toast(`No timed lines found in ${f.name}.`, 'error');
+        return;
+    }
+    setProject('lyrics.cues', cues);
+    toast(`Loaded ${cues.length} lyric lines.`);
 }

@@ -78,6 +78,7 @@ export function createDefaultProject(): Project {
             align: 'center',
             intro: 3,
         },
+        lyrics: { cues: [], y: -0.42, size: 0.045, color: '#ffffff', glow: 0.5, uppercase: false },
         watermark: { imageId: null, corner: 'tr', size: 0.11, margin: 0.035, opacity: 0.85, pulse: 0.25 },
         fx: {
             bloom: 0.75,
@@ -102,6 +103,7 @@ export function createDefaultProject(): Project {
             letterbox: 0,
             dynamics: 0.6,
             buildBoost: 0.5,
+            cuts: 0,
             fadeIn: 1,
             fadeOut: 2,
         },
