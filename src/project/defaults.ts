@@ -40,6 +40,7 @@ export function createDefaultProject(): Project {
             kickScale: 0.6,
             colorMode: 'palette',
             opacity: 1,
+            peaks: true,
             release: 0.16,
             minHz: 30,
             maxHz: 14000,

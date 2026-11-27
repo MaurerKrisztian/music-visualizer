@@ -2,6 +2,8 @@ import { HEADER } from './common';
 
 export const SPECTRUM_SHADER = `${HEADER}
 uniform sampler2D uSpec;
+uniform sampler2D uPeaks;
+uniform float uSpPeaks;
 uniform float uSpecBars;
 uniform float uSpecRow;
 uniform float uSpecHist;
@@ -85,6 +87,15 @@ vec4 radialBars(vec2 p) {
     float glow = exp(-max(sd, 0.0) / 0.005) * 0.18;
     vec3 c = spColor(x, v) * (0.75 + 0.6 * v);
     c = mix(c, vec3(1.0), smoothstep(0.55, 1.0, ly / max(len, 1e-4)) * 0.35 * v);
+    if (uSpPeaks > 0.5) {
+        float pk = texelFetch(uPeaks, ivec2(int(idx), 0), 0).r;
+        float capY = uSpHeight * pow(pk, 1.35) + uSpThick + 0.006;
+        float capH = max(0.0025, bw * 0.35);
+        float sdc = sdRoundBox(vec2(lx, ly - capY), vec2(bw * 0.5, capH * 0.5), capH * 0.5);
+        float mc = smoothstep(aa, -aa, sdc) * smoothstep(0.02, 0.08, pk);
+        c = mix(c, vec3(1.0), mc * 0.6);
+        m = max(m, mc);
+    }
     return vec4(c * (m + glow), m);
 }
 
@@ -141,6 +152,14 @@ vec4 linearBars(vec2 p) {
     float m2 = smoothstep(aa, -aa, sdRoundBox(vec2(lx, -q.y - h * 0.5), vec2(bw * 0.5, h * 0.5), rr));
     m2 *= 0.22 * smoothstep(-h, 0.0, q.y);
     vec3 c = spColor(bx, v) * (0.7 + 0.6 * v);
+    if (uSpPeaks > 0.5) {
+        float pk = texelFetch(uPeaks, ivec2(int(clamp(idx, 0.0, uSpecBars - 1.0)), 0), 0).r;
+        float capY = uSpHeight * pow(pk, 1.3) + uSpThick + 0.006;
+        float capH = max(0.0025, bw * 0.3);
+        float mc = smoothstep(aa, -aa, sdRoundBox(vec2(lx, q.y - capY), vec2(bw * 0.5, capH * 0.5), capH * 0.5)) * smoothstep(0.02, 0.08, pk);
+        c = mix(c, vec3(1.0), mc * 0.6);
+        m = max(m, mc);
+    }
     return vec4(c * (m + m2), m + m2 * 0.5);
 }
 

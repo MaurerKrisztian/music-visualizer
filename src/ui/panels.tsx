@@ -358,6 +358,7 @@ export function ElementsPanel() {
                         <Slider label="Height" path="spectrum.height" min={0.02} max={0.45} step={0.005} />
                         <Slider label="Thickness" path="spectrum.thickness" min={0} max={0.02} step={0.0005} digits={4} />
                         {bars && <Slider label="Gap" path="spectrum.gap" min={0} max={0.9} />}
+                        {bars && <Toggle label="Peak caps" path="spectrum.peaks" hint="Small caps that hold at the peak and fall slowly" />}
                         {layered && <Slider label="Layers" path="spectrum.layers" min={1} max={8} step={1} />}
                         <Toggle label="Mirror" path="spectrum.mirror" />
                         {radial && <Slider label="Rotation" path="spectrum.rotate" min={-180} max={180} step={1} unit="°" />}

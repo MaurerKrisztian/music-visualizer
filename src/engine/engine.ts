@@ -76,6 +76,7 @@ export class Engine {
     private readonly bgPrograms = new Map<BackgroundMode, Program>();
     private readonly progs: Record<string, Program> = {};
     private specTex: WebGLTexture;
+    private peakTex: WebGLTexture;
     private specBars = 0;
     private specRow = 0;
     private readonly waveTex: WebGLTexture;
@@ -133,6 +134,7 @@ export class Engine {
         mk('particles', PARTICLE_FS, PARTICLE_VS);
 
         this.specTex = createDataTexture(gl, 64, SPEC_HIST, gl.NEAREST);
+        this.peakTex = createDataTexture(gl, 64, 1, gl.NEAREST);
         this.specBars = 64;
         this.waveTex = createDataTexture(gl, WAVE_POINTS, 2, gl.LINEAR);
 
@@ -238,10 +240,14 @@ export class Engine {
         const bars = f.spectrum.length;
         if (bars !== this.specBars) {
             gl.deleteTexture(this.specTex);
+            gl.deleteTexture(this.peakTex);
             this.specTex = createDataTexture(gl, bars, SPEC_HIST, gl.NEAREST);
+            this.peakTex = createDataTexture(gl, bars, 1, gl.NEAREST);
             this.specBars = bars;
             this.specRow = 0;
         }
+        gl.bindTexture(gl.TEXTURE_2D, this.peakTex);
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, bars, 1, gl.RED, gl.FLOAT, f.peaks);
         if (advance) this.specRow = (this.specRow + 1) % SPEC_HIST;
         gl.bindTexture(gl.TEXTURE_2D, this.specTex);
         gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, this.specRow, bars, 1, gl.RED, gl.FLOAT, f.spectrum);
@@ -430,6 +436,8 @@ export class Engine {
             const spg = this.progs.spectrum.use();
             this.common(spg, f, palette, move, spin, W, H)
                 .tex('uSpec', this.specTex)
+                .tex('uPeaks', this.peakTex)
+                .f('uSpPeaks', sp.peaks ? 1 : 0)
                 .f('uSpecBars', this.specBars)
                 .f('uSpecRow', this.specRow)
                 .f('uSpecHist', SPEC_HIST)
@@ -676,6 +684,7 @@ export class Engine {
         for (const b of this.bloom) b.dispose();
         for (const c of this.images.values()) gl.deleteTexture(c.tex);
         gl.deleteTexture(this.specTex);
+        gl.deleteTexture(this.peakTex);
         gl.deleteTexture(this.waveTex);
         gl.deleteTexture(this.blackTex);
         this.text.dispose();

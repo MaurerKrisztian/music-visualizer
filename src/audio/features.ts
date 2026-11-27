@@ -38,6 +38,8 @@ export interface Features {
     duration: number;
     progress: number;
     spectrum: Float32Array;
+    /** Falling peak-hold values per bar (for peak caps). */
+    peaks: Float32Array;
     wave: Float32Array;
     waveR: Float32Array;
     sub: number;
@@ -99,6 +101,7 @@ function sampleArray(arr: Float32Array, rate: number, t: number): number {
 export class FeatureExtractor {
     private readonly analyzer: SpectrumAnalyzer;
     private rawSpectrum = new Float32Array(DEFAULT_REACT.spectrum.bars);
+    private peakAge = new Float32Array(DEFAULT_REACT.spectrum.bars);
     private readonly f: Features;
     private lastT = -1;
     private env: Envelopes | null = null;
@@ -112,6 +115,7 @@ export class FeatureExtractor {
             duration: audio.duration,
             progress: 0,
             spectrum: new Float32Array(DEFAULT_REACT.spectrum.bars),
+            peaks: new Float32Array(DEFAULT_REACT.spectrum.bars),
             wave: new Float32Array(WAVE_POINTS),
             waveR: new Float32Array(WAVE_POINTS),
             sub: 0,
@@ -180,11 +184,24 @@ export class FeatureExtractor {
         const bars = o.spectrum.bars;
         if (f.spectrum.length !== bars) {
             f.spectrum = new Float32Array(bars);
+            f.peaks = new Float32Array(bars);
+            this.peakAge = new Float32Array(bars);
             this.rawSpectrum = new Float32Array(bars);
         }
         const center = t * this.audio.sampleRate;
         this.analyzer.compute(this.audio.channels, center, o.spectrum, this.rawSpectrum);
-        for (let i = 0; i < bars; i++) f.spectrum[i] = smoothTo(f.spectrum[i], this.rawSpectrum[i], sdt, 0.012, o.spectrumRelease);
+        for (let i = 0; i < bars; i++) {
+            const v = smoothTo(f.spectrum[i], this.rawSpectrum[i], sdt, 0.012, o.spectrumRelease);
+            f.spectrum[i] = v;
+            // peak caps: hold for a moment, then fall with gravity
+            if (jumped || v >= f.peaks[i]) {
+                f.peaks[i] = v;
+                this.peakAge[i] = 0;
+            } else {
+                this.peakAge[i] += dt;
+                if (this.peakAge[i] > 0.25) f.peaks[i] = Math.max(v, f.peaks[i] - (this.peakAge[i] - 0.25) * 2.2 * dt);
+            }
+        }
         extractWave(this.audio.channels, center, Math.round(this.audio.sampleRate * 0.03), f.wave, f.waveR);
 
         const env = this.env;

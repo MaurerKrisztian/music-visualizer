@@ -95,6 +95,8 @@ export interface Project {
         kickScale: number;
         colorMode: ColorMode;
         opacity: number;
+        /** falling peak caps on bar styles */
+        peaks: boolean;
         release: number;
         minHz: number;
         maxHz: number;
