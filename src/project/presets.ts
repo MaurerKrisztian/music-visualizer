@@ -101,14 +101,14 @@ export const PRESETS: Preset[] = [
         tags: 'hardstyle · festival · anthem',
         swatch: ['#ffb300', '#ffffff', '#2979ff'],
         patch: {
-            palette: { a: '#ffb300', b: '#ffffff', c: '#2979ff', hueSpeed: 0, dropHueShift: 0 },
+            palette: { a: '#ffb300', b: '#ffe2a0', c: '#2979ff', hueSpeed: 0, dropHueShift: 0 },
             background: { mode: 'lasers', speed: 0.5, scale: 0.5, detail: 0.55, twist: 0.6, brightness: 0.9, react: 0.7 },
             overlays: { fire: 0.7, fireHeight: 0.22, smoke: 0.45, lasers: 0, crowd: 1, crowdHeight: 0.35 },
             spectrum: { style: 'radial-wave', layers: 4, radius: 0.15, height: 0.12, colorMode: 'palette', kickScale: 0.6 },
             center: { enabled: true, radius: 0.15, ring: 0.5, ringGlow: 0.8, shockRings: 0.5 },
             particles: { mode: 'sparks', count: 400, size: 0.4, speed: 0.6, kickBoost: 0.8, colorMode: 'fire' },
             text: { font: 'Michroma', spacing: 0.18, size: 0.045, glitch: 0.1, glow: 0.55 },
-            fx: { bloom: 0.9, shake: 0.4, zoomPunch: 0.4, chromatic: 0.2, glitch: 0.1, shockwave: 0.35, flash: 0.45, grain: 0.08, trails: 0 },
+            fx: { bloom: 0.7, bloomThreshold: 0.65, shake: 0.4, zoomPunch: 0.4, chromatic: 0.2, glitch: 0.1, shockwave: 0.35, flash: 0.4, grain: 0.08, trails: 0, cuts: 0.3 },
         },
     },
     {
@@ -222,4 +222,34 @@ export function applyPreset(current: Project, preset: Preset): Project {
     fresh.lyrics = { ...current.lyrics, cues: current.lyrics.cues };
     fresh.text.intro = current.text.intro;
     return fresh;
+}
+
+const RANDOM_PALETTES: [string, string, string][] = [
+    ['#00e5ff', '#7a2cff', '#ff2bd6'],
+    ['#ff5a00', '#ff0033', '#ffc400'],
+    ['#ff0022', '#ffffff', '#7a0010'],
+    ['#39ff14', '#ff00aa', '#fff200'],
+    ['#ffb300', '#ffe2a0', '#2979ff'],
+    ['#2af5ff', '#3d5afe', '#e0f7ff'],
+    ['#05d9e8', '#7700ff', '#ff2a6d'],
+    ['#f72585', '#7209b7', '#4cc9f0'],
+    ['#00ff9c', '#00b8ff', '#d600ff'],
+    ['#ff7b00', '#ff0054', '#ffffff'],
+];
+
+/** A random preset with a random palette and a few nudged parameters. */
+export function surprise(current: Project): Project {
+    const pick = <T>(a: T[]) => a[Math.floor(Math.random() * a.length)];
+    const p = applyPreset(current, pick(PRESETS));
+    const pal = pick(RANDOM_PALETTES);
+    p.palette.a = pal[0];
+    p.palette.b = pal[1];
+    p.palette.c = pal[2];
+    const jitter = (v: number, amt = 0.25) => Math.min(1, Math.max(0, v + (Math.random() - 0.5) * amt));
+    p.background.speed = jitter(p.background.speed);
+    p.background.scale = jitter(p.background.scale);
+    p.background.detail = jitter(p.background.detail, 0.5);
+    p.background.twist = jitter(p.background.twist, 0.5);
+    p.fx.shake = jitter(p.fx.shake, 0.2);
+    return p;
 }

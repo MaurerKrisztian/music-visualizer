@@ -12,7 +12,7 @@ A browser music visualizer built for **hardstyle, rawstyle, hardcore, uptempo an
   - 6 spectrum styles
   - logo / cover circle with shock rings
   - particles
-  - lasers, fire with pyro jets, and smoke
+  - lasers, fire with pyro jets, smoke, and festival crowd silhouettes that jump on the kicks
   - post effects: bloom, shake, zoom punch, beat-synced camera cuts, shockwave ripple, glitch, chromatic aberration, strobe, trails and film grain
 - **Section-aware dynamics**: calm breakdowns, tension that builds into the drop, and maximum impact on the drop.
 - **12 genre presets** (Euphoric, Rawstyle, Uptempo Terror, Frenchcore, Gabber, Mainstage Pyro and more). The gallery thumbnails are rendered from your own track.

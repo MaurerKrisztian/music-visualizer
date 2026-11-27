@@ -3,7 +3,7 @@ import { presetThumb, renderThumbs, subscribeThumbs, thumbsVersion } from '../ap
 import { appStore, loadAudio, loadDemo, loadLyricsFile, seek, toast } from '../app/session';
 import { assets } from '../project/assets';
 import { customFontList, ensureFont, FONTS } from '../project/fonts';
-import { applyPreset, PRESETS } from '../project/presets';
+import { applyPreset, PRESETS, surprise } from '../project/presets';
 import { projectStore, setProject, useProject, useStore } from '../project/store';
 import { BACKGROUND_MODES, PARTICLE_MODES, SPECTRUM_STYLES, type BackgroundMode, type SpectrumStyle } from '../project/types';
 import { Color, Hint, ImageSlot, Section, Segmented, Select, Slider, TextField, Toggle } from './controls';
@@ -63,7 +63,21 @@ export function LookPanel() {
     }, [interp, artist, title, bgImage, logo]);
     return (
         <div className="panel">
-            <Hint>Pick a starting look, then fine-tune it in the other tabs. Your track text, images and sync settings are kept.</Hint>
+            <div className="row look-head">
+                <Hint>Pick a starting look, then fine-tune it in the other tabs. Your text, images and sync settings are kept.</Hint>
+                <button
+                    className="btn small"
+                    title="Random preset and colours"
+                    onClick={() => {
+                        const p = surprise(projectStore.get());
+                        projectStore.set(p);
+                        setActive(null);
+                        void ensureFont(p.text.font);
+                    }}
+                >
+                    🎲 Surprise me
+                </button>
+            </div>
             <div className="preset-grid">
                 {PRESETS.map((p) => (
                     <button

@@ -33,6 +33,7 @@ Every frame is a pure function of **(project settings, audio features at time t)
 - [x] Intro title card, corner watermark (channel logo), separate drop palette, and full-resolution PNG snapshot for thumbnails.
 - [x] Draggable export range on the timeline; exports keep full speed in background tabs (wake lock, progress in the tab title).
 - [x] Lyrics and subtitles from .lrc/.srt files; beat-synced camera cuts (a new framing on every bar during drops).
+- [x] Festival crowd silhouettes, a "Surprise me" randomiser and a keyboard shortcut overlay.
 
 ## Next
 

@@ -86,6 +86,7 @@ export default function App() {
     const audioInput = useRef<HTMLInputElement>(null);
     const projectInput = useRef<HTMLInputElement>(null);
     const [toastVisible, setToastVisible] = useState(false);
+    const [help, setHelp] = useState(false);
 
     useEffect(() => {
         startAutosave();
@@ -125,6 +126,10 @@ export default function App() {
                 projectInput.current?.click();
             } else if (typing) {
                 return;
+            } else if (e.key === '?') {
+                setHelp((h) => !h);
+            } else if (e.key === 'Escape') {
+                setHelp(false);
             } else if (e.code === 'Space') {
                 e.preventDefault();
                 void togglePlay();
@@ -194,6 +199,9 @@ export default function App() {
                     <button className="icon-btn" onClick={() => void saveProjectFile()} title="Save project file (Ctrl+S)">
                         <IconSave />
                     </button>
+                    <button className="icon-btn" onClick={() => setHelp(true)} title="Keyboard shortcuts (?)">
+                        ?
+                    </button>
                     <button className="btn primary" onClick={() => setTab('export')}>
                         <IconFilm /> Export video
                     </button>
@@ -245,6 +253,33 @@ export default function App() {
                     </div>
                 </aside>
             </main>
+            {help && (
+                <div className="modal-backdrop" onClick={() => setHelp(false)}>
+                    <div className="modal" onClick={(e) => e.stopPropagation()}>
+                        <h3>Keyboard shortcuts</h3>
+                        <div className="shortcuts">
+                            <kbd>Space</kbd>
+                            <span>Play / pause</span>
+                            <kbd>← →</kbd>
+                            <span>Seek 5 s (Shift: 1 s)</span>
+                            <kbd>Ctrl Z</kbd>
+                            <span>Undo (Ctrl Shift Z / Ctrl Y: redo)</span>
+                            <kbd>Ctrl S</kbd>
+                            <span>Save project file</span>
+                            <kbd>Ctrl O</kbd>
+                            <span>Open project file</span>
+                            <kbd>?</kbd>
+                            <span>This help</span>
+                        </div>
+                        <p className="hint">
+                            Drop audio, cover art, fonts, .lrc/.srt lyrics or .canvasbeats projects anywhere. Double-click a slider to reset it. Drag the yellow handles on the timeline to change the export range.
+                        </p>
+                        <button className="btn ghost" onClick={() => setHelp(false)}>
+                            Close
+                        </button>
+                    </div>
+                </div>
+            )}
             {dragging && (
                 <div className="drop-overlay">
                     <div>

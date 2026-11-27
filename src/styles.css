@@ -1024,3 +1024,25 @@ input[type='color']::-webkit-color-swatch {
         grid-template-columns: 1fr;
     }
 }
+.look-head {
+    align-items: flex-start;
+}
+.look-head .hint {
+    flex: 1;
+}
+.shortcuts {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 8px 16px;
+    font-size: 13px;
+}
+.shortcuts kbd {
+    display: inline-block;
+    min-width: 22px;
+    padding: 2px 6px;
+    border-radius: 5px;
+    border: 1px solid var(--line2);
+    background: #0b0d16;
+    font: 600 12px ui-monospace, monospace;
+    text-align: center;
+}
