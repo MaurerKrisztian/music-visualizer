@@ -38,6 +38,6 @@ npm run build
 `/dev/engine.html` renders frames of the demo track for screenshot checks.
 `scripts/make-demo.py` regenerates the bundled demo track.
 
-Every push to `main` is linted, tested, built and deployed to GitHub Pages (canvasbeats.com) by `.github/workflows/deploy.yml`.
+Every push to `main` is linted, tested, built and deployed to GitHub Pages by `.github/workflows/deploy.yml`.
 
 See [docs/PLAN.md](docs/PLAN.md) for the architecture, current status and roadmap.
