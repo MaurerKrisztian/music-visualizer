@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { SectionKind } from '../audio/analysis';
 import { live } from '../app/preview';
-import { appStore, player, seek } from '../app/session';
+import { appStore, player, seek, toggleDropAt } from '../app/session';
 import { projectStore, useProject, useStore } from '../project/store';
 import { formatTime } from './format';
 
@@ -186,6 +186,8 @@ export function Timeline() {
                 }
             }}
             onPointerUp={() => (drag.current = null)}
+            onDoubleClick={(e) => toggleDropAt(timeAt(e.clientX))}
+            title="Click to seek, double-click to add or remove a drop"
             onPointerLeave={() => setHover(null)}
         >
             <canvas ref={canvas} />

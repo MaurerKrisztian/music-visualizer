@@ -34,10 +34,10 @@ Every frame is a pure function of **(project settings, audio features at time t)
 - [x] Draggable export range on the timeline; exports keep full speed in background tabs (wake lock, progress in the tab title).
 - [x] Lyrics and subtitles from .lrc/.srt files; beat-synced camera cuts (a new framing on every bar during drops).
 - [x] Festival crowd silhouettes, a "Surprise me" randomiser and a keyboard shortcut overlay.
+- [x] Manual drop editing (double-click the timeline); kick-roll build-ups no longer create false early drops.
 
 ## Next
 
-- [ ] Timeline: add or remove drop markers by hand.
 - [ ] Multiple free text layers (e.g. label name, "OUT NOW").
 - [ ] Per-section looks beyond colours (switch background or spectrum style on each drop).
 - [ ] Batch export (16:9 and 9:16 in one go).

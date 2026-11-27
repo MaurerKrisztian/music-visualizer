@@ -1,7 +1,7 @@
 // App-level state that is not part of the saved project: the loaded track,
 // analysis results, playback and export status. Plus load/restore logic.
 
-import { DEFAULT_SYNC, interpret, type Envelopes, type Interpretation, type SyncOptions } from '../audio/analysis';
+import { applyDropEdits, DEFAULT_SYNC, interpret, type Envelopes, type Interpretation, type SyncOptions } from '../audio/analysis';
 import { analyzeInWorker, decodeAudioFile } from '../audio/decode';
 import { DEFAULT_REACT, FeatureExtractor, type ReactOptions } from '../audio/features';
 import { Player } from '../audio/player';
@@ -71,6 +71,15 @@ export function toast(text: string, kind: 'info' | 'error' = 'info'): void {
     appStore.update((s) => void (s.toast = { text, kind, id: Date.now() }), false);
 }
 
+/** Full interpretation for a project: detection plus the user's manual drop edits. */
+export function interpretFor(env: Envelopes, p: Project): Interpretation {
+    return applyDropEdits(interpret(env, syncOptions(p)), p.sync.addedDrops ?? [], p.sync.removedDrops ?? []);
+}
+
+function syncKey(p: Project): string {
+    return JSON.stringify([syncOptions(p), p.sync.addedDrops, p.sync.removedDrops]);
+}
+
 export function syncOptions(p: Project): SyncOptions {
     return {
         ...DEFAULT_SYNC,
@@ -132,10 +141,10 @@ export async function loadAudio(blob: Blob, name: string, opts: { isDemo?: boole
         buffer = buf;
         channels = Array.from({ length: buf.numberOfChannels }, (_, i) => buf.getChannelData(i));
         extractor = new FeatureExtractor({ channels, sampleRate: buf.sampleRate, duration: buf.duration });
-        const interp = interpret(env, syncOptions(projectStore.get()));
+        const interp = interpretFor(env, projectStore.get());
         extractor.setAnalysis(env, interp);
         player.load(buf);
-        lastSyncKey = JSON.stringify(syncOptions(projectStore.get()));
+        lastSyncKey = syncKey(projectStore.get());
         appStore.update((s) => {
             s.track = { name, duration: buf.duration, sampleRate: buf.sampleRate, channels: buf.numberOfChannels, isDemo: !!opts.isDemo };
             s.stage = 'ready';
@@ -152,6 +161,9 @@ export async function loadAudio(blob: Blob, name: string, opts: { isDemo?: boole
                     p.meta.title = parsed.title;
                     p.export.rangeStart = null;
                     p.export.rangeEnd = null;
+                    p.sync.addedDrops = [];
+                    p.sync.removedDrops = [];
+                    p.lyrics.cues = [];
                 });
             }
         }
@@ -180,11 +192,10 @@ let lastSyncKey = '';
 projectStore.subscribe(() => {
     const st = appStore.get();
     if (!st.env) return;
-    const opts = syncOptions(projectStore.get());
-    const key = JSON.stringify(opts);
+    const key = syncKey(projectStore.get());
     if (key === lastSyncKey) return;
     lastSyncKey = key;
-    const interp = interpret(st.env, opts);
+    const interp = interpretFor(st.env, projectStore.get());
     extractor?.setAnalysis(st.env, interp);
     appStore.update((s) => void (s.interp = interp), false);
 });
@@ -258,4 +269,37 @@ export async function loadLyricsFile(f: File): Promise<void> {
     }
     setProject('lyrics.cues', cues);
     toast(`Loaded ${cues.length} lyric lines.`);
+}
+
+/** Adds a drop at the nearest bar start, or removes the drop near t. */
+export function toggleDropAt(t: number): void {
+    const st = appStore.get();
+    if (!st.interp) return;
+    const it = st.interp;
+    const bar = (60 / it.bpm) * 4;
+    const existing = Array.from(it.drops).find((d) => Math.abs(d - t) < bar * 0.5);
+    projectStore.update((p) => {
+        const added = p.sync.addedDrops ?? [];
+        const removed = p.sync.removedDrops ?? [];
+        if (existing !== undefined) {
+            const manualIdx = added.findIndex((a) => Math.abs(a - existing) < bar * 0.5);
+            if (manualIdx >= 0) added.splice(manualIdx, 1);
+            else removed.push(existing);
+        } else {
+            let snapped = t;
+            let best = Infinity;
+            for (let b = it.downbeat; b < it.beats.length; b += 4) {
+                const d = Math.abs(it.beats[b] - t);
+                if (d < best) {
+                    best = d;
+                    snapped = it.beats[b];
+                }
+            }
+            const wasRemoved = removed.findIndex((r) => Math.abs(r - snapped) < bar * 0.5);
+            if (wasRemoved >= 0) removed.splice(wasRemoved, 1);
+            else added.push(snapped);
+        }
+        p.sync.addedDrops = added;
+        p.sync.removedDrops = removed;
+    });
 }

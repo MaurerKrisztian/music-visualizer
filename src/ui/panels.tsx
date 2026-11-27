@@ -107,6 +107,7 @@ export function AudioPanel() {
     const track = useStore(appStore, (s) => s.track);
     const interp = useStore(appStore, (s) => s.interp);
     const bpmOverride = useProject((p) => p.sync.bpmOverride);
+    const editedDrops = useProject((p) => (p.sync.addedDrops?.length ?? 0) + (p.sync.removedDrops?.length ?? 0));
     const input = useRef<HTMLInputElement>(null);
     const [tap, setTap] = useState<number[]>([]);
 
@@ -177,6 +178,20 @@ export function AudioPanel() {
                                 <span>grid fit</span>
                             </div>
                         </div>
+                        <Hint>Double-click the timeline to add a drop the analysis missed, or to remove a wrong one.</Hint>
+                        {editedDrops > 0 && (
+                            <button
+                                className="btn small ghost"
+                                onClick={() =>
+                                    projectStore.update((p) => {
+                                        p.sync.addedDrops = [];
+                                        p.sync.removedDrops = [];
+                                    })
+                                }
+                            >
+                                Reset drop edits ({editedDrops})
+                            </button>
+                        )}
                         {interp.drops.length > 0 && (
                             <div className="chips">
                                 {Array.from(interp.drops).map((d, i) => (

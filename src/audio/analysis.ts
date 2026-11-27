@@ -723,3 +723,43 @@ export function analyzeMono(mono: Float32Array, sampleRate: number, opts: SyncOp
     return { env, interp: interpret(env, opts) };
 }
 
+/**
+ * Applies the user's manual drop edits: removes detected drops near a time in
+ * `removed` and adds drops (with an 8-bar build-up before each) at `added`.
+ */
+export function applyDropEdits(interp: Interpretation, added: number[], removed: number[]): Interpretation {
+    if (!added.length && !removed.length) return interp;
+    const bar = (60 / interp.bpm) * 4;
+    const near = (a: number, b: number) => Math.abs(a - b) < bar * 0.5;
+    const drops: { t: number; s: number; manual: boolean }[] = [];
+    interp.drops.forEach((t, i) => {
+        if (!removed.some((r) => near(r, t))) drops.push({ t, s: interp.dropStrength[i], manual: false });
+    });
+    for (const t of added) if (!drops.some((d) => near(d.t, t))) drops.push({ t, s: 1, manual: true });
+    drops.sort((a, b) => a.t - b.t);
+    const builds: number[] = [];
+    for (let i = 0; i + 1 < interp.builds.length; i += 2) {
+        const end = interp.builds[i + 1];
+        if (drops.some((d) => !d.manual && near(d.t, end))) builds.push(interp.builds[i], end);
+    }
+    for (const d of drops) {
+        if (!d.manual) continue;
+        const prev = drops.filter((x) => x.t < d.t - 0.01).pop();
+        const start = Math.max(prev ? prev.t + bar : 0, d.t - 8 * bar);
+        if (start < d.t - bar) builds.push(start, d.t);
+    }
+    const pairs: [number, number][] = [];
+    for (let i = 0; i + 1 < builds.length; i += 2) pairs.push([builds[i], builds[i + 1]]);
+    pairs.sort((a, b) => a[0] - b[0]);
+    const sections = interp.sections.map((sec) => ({ ...sec }));
+    for (const d of drops.filter((x) => x.manual)) {
+        for (const sec of sections) if (d.t >= sec.start && d.t < sec.end && sec.kind !== 'drop') sec.kind = 'drop';
+    }
+    return {
+        ...interp,
+        drops: Float32Array.from(drops.map((d) => d.t)),
+        dropStrength: Float32Array.from(drops.map((d) => d.s)),
+        builds: Float32Array.from(pairs.flat()),
+        sections,
+    };
+}

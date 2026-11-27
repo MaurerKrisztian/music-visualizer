@@ -29,6 +29,10 @@ export interface Project {
         kickDecay: number;
         /** extra visual delay in the live preview, ms (negative = earlier) */
         previewOffsetMs: number;
+        /** drops added by hand (seconds) */
+        addedDrops: number[];
+        /** detected drops removed by hand (seconds) */
+        removedDrops: number[];
     };
     palette: {
         a: string;

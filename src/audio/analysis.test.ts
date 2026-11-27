@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { analyzeMono, DEFAULT_SYNC } from './analysis';
+import { analyzeMono, applyDropEdits, DEFAULT_SYNC } from './analysis';
 import { synthTrack, type SynthPart } from './synth';
 
 function matchKicks(detected: Float32Array, truth: number[], tol = 0.025) {
@@ -121,6 +121,21 @@ describe('analysis', () => {
         const { interp } = analyzeMono(s.mono, s.sampleRate, { ...DEFAULT_SYNC, bpmOverride: 75, beatOffsetMs: 10 });
         expect(interp.bpm).toBe(75);
         expect(interp.beats.length).toBeGreaterThan(8);
+    });
+
+    it('applies manual drop edits', () => {
+        const s = synthTrack({ bpm: 150, parts: hardstyle });
+        const { interp } = analyzeMono(s.mono, s.sampleRate);
+        const auto = interp.drops[0];
+        const bar = 1.6;
+        const edited = applyDropEdits(interp, [8 * bar], [auto + 0.1]);
+        expect(Array.from(edited.drops)).toEqual([expect.closeTo(8 * bar, 3)]);
+        // a build-up is created before the manual drop
+        expect(edited.builds.length).toBe(2);
+        expect(edited.builds[1]).toBeCloseTo(8 * bar, 3);
+        expect(edited.builds[0]).toBeLessThan(8 * bar - bar);
+        // no edits -> same object
+        expect(applyDropEdits(interp, [], [])).toBe(interp);
     });
 
     it('survives silence and very short input', () => {
