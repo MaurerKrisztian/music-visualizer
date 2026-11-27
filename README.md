@@ -6,7 +6,7 @@ A browser music visualizer built for **hardstyle, rawstyle, hardcore, uptempo an
 
 ## Features
 
-- **Track analysis** (Web Worker): kick detection, BPM and beat grid, downbeats, build-ups and drops, plus an intensity curve.
+- **Track analysis** (Web Worker): kick detection, BPM and beat grid, downbeats, build-ups and drops, plus an intensity curve. Double-click the timeline to add or remove a drop by hand.
 - **WebGL2 engine** with:
   - 10 backgrounds (cover art, neon tunnel, hyperspace, lasers, hex shockwave, retro grid, nebula, plasma, kaleidoscope, void)
   - 6 spectrum styles

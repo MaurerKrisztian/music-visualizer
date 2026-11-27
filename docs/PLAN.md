@@ -36,6 +36,7 @@ Every frame is a pure function of **(project settings, audio features at time t)
 - [x] Festival crowd silhouettes, a "Surprise me" randomiser and a keyboard shortcut overlay.
 - [x] Manual drop editing (double-click the timeline); kick-roll build-ups no longer create false early drops.
 - [x] Drop scene: a second background that cuts in on drops (Euphoric preset: nebula breakdowns, neon tunnel drops).
+- [x] Falling peak caps on bar spectrums.
 
 ## Next
 
@@ -43,4 +44,5 @@ Every frame is a pure function of **(project settings, audio features at time t)
 - [ ] Per-section spectrum/particle styles (beyond background and colours).
 - [ ] Batch export (16:9 and 9:16 in one go).
 - [ ] Render the export in a worker with OffscreenCanvas so the UI stays responsive.
-- [ ] Beat-synced camera cuts and more backgrounds (3D city, crowd silhouettes, VHS).
+- [ ] More backgrounds (stage with truss lights, 3D city, VHS tape).
+- [ ] Tune kick/drop detection on a set of real hardstyle, rawstyle and uptempo tracks (so far tested on synthetic tracks and the demo).
