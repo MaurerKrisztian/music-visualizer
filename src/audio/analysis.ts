@@ -614,13 +614,21 @@ export function interpret(env: Envelopes, opts: SyncOptions = DEFAULT_SYNC): Int
     const barStarts: number[] = [];
     const barKick: boolean[] = [];
     const barLoud: number[] = [];
+    const barCount: number[] = [];
+    const barStrength: number[] = [];
     for (let b = downbeat; b + 4 <= B; b += 4) {
         barStarts.push(beats[b]);
         let cnt = 0;
         for (let j = 0; j < 4; j++) if (kickAt[b + j] > 0.22) cnt++;
-        barKick.push(cnt >= 2);
+        barCount.push(cnt);
+        barStrength.push(meanRange(kickAt, b, b + 4));
         barLoud.push(meanRange(loud, b, b + 4));
     }
+    // A "kick bar" needs kicks on most beats at close to the track's typical
+    // drop-kick strength; quieter filtered kick rolls in build-ups don't count.
+    const strongBars = barStrength.filter((_, k) => barCount[k] >= 2);
+    const refStrength = strongBars.length ? percentile(strongBars, 0.9) : 0;
+    for (let k = 0; k < barStarts.length; k++) barKick.push(barCount[k] >= 2 && barStrength[k] >= 0.68 * refStrength);
     const nBars = barStarts.length;
     // Remove single-bar blips (fills / stray hits).
     for (let k = 1; k < nBars - 1; k++) {

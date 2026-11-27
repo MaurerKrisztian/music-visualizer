@@ -13,6 +13,10 @@ export interface SynthPart {
     reverseBass?: boolean;
     /** Kick rolls (16ths) in the last bar of the part. */
     roll?: boolean;
+    /** Quiet, accelerating build-up kicks (quarters, then 8ths, then 16ths). */
+    buildKicks?: boolean;
+    /** Loudness of the build-up kicks (default 0.22, ramps up by 0.2). */
+    buildKickAmp?: number;
 }
 
 export interface SynthOptions {
@@ -102,6 +106,14 @@ export function synthTrack(opts: SynthOptions): SynthResult {
                 }
                 if (part.hats) addNoise(t + beat / 2, 0.05, 0.12, true);
                 if (part.reverseBass) addTone(t + beat * 0.3, beat * 0.45, 55, 0.25, true);
+                if (part.buildKicks) {
+                    const prog = (b * 4 + q) / (part.bars * 4);
+                    const div = prog < 0.5 ? 1 : prog < 0.75 ? 2 : 4;
+                    for (let k = 0; k < div; k++) {
+                        addKick(t + (k * beat) / div, (part.buildKickAmp ?? 0.22) + 0.2 * prog);
+                        kickTimes.pop(); // not counted as real kicks
+                    }
+                }
                 if (part.build) {
                     const prog = (b * 4 + q) / (part.bars * 4);
                     const div = prog < 0.5 ? 2 : prog < 0.75 ? 4 : 8;

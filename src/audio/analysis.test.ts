@@ -84,6 +84,26 @@ describe('analysis', () => {
         expect(interp.drops.length).toBeGreaterThanOrEqual(1);
     });
 
+    it.each([0.22, 0.55])('puts the drop after a kick-roll build-up (roll level %s), not at its start', (amp) => {
+        const s = synthTrack({
+            bpm: 150,
+            parts: [
+                { bars: 8, kicks: true, hats: true },
+                { bars: 8, kicks: false, pads: true },
+                { bars: 8, kicks: false, pads: true, build: true, buildKicks: true, buildKickAmp: amp },
+                { bars: 16, kicks: true, hats: true, reverseBass: true },
+            ],
+        });
+        const { interp } = analyzeMono(s.mono, s.sampleRate);
+        const target = 24 * 4 * (60 / 150);
+        // the only drop after the breakdown is the real one, not the roll's start
+        const late = Array.from(interp.drops).filter((d) => d > 12);
+        expect(late.length).toBe(1);
+        expect(Math.abs(late[0] - target)).toBeLessThan(0.5);
+        expect(interp.builds.length).toBeGreaterThanOrEqual(2);
+        expect(interp.builds[interp.builds.length - 1]).toBeCloseTo(target, 0);
+    });
+
     it('handles terror tempo (250 BPM)', () => {
         const s = synthTrack({ bpm: 250, kickTail: 0.2, parts: [{ bars: 32, kicks: true, hats: true }] });
         const { interp } = analyzeMono(s.mono, s.sampleRate);
