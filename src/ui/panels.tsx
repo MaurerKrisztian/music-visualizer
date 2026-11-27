@@ -403,6 +403,7 @@ export function TextPanel() {
     const font = useProject((p) => p.text.font);
     const progress = useProject((p) => p.progress.enabled);
     const stroke = useProject((p) => p.text.stroke);
+    const watermark = useProject((p) => !!p.watermark.imageId);
     useAssets();
     const fontInput = useRef<HTMLInputElement>(null);
     const custom = customFontList();
@@ -485,6 +486,28 @@ export function TextPanel() {
                         <Slider label="Glow" path="text.glow" />
                         <Slider label="Kick pulse" path="text.pulse" />
                         <Slider label="Glitch" path="text.glitch" />
+                        <Slider label="Intro title card" path="text.intro" min={0} max={10} step={0.5} unit=" s" hint="Shows the title big in the centre at the start of the video, then glides it into place (0 = off)" />
+                    </>
+                )}
+            </Section>
+            <Section title="Channel logo (watermark)">
+                <ImageSlot label="Image" path="watermark.imageId" hint="PNG with transparency works best" />
+                {watermark && (
+                    <>
+                        <Segmented
+                            label="Corner"
+                            path="watermark.corner"
+                            options={[
+                                { value: 'tl', label: '↖' },
+                                { value: 'tr', label: '↗' },
+                                { value: 'bl', label: '↙' },
+                                { value: 'br', label: '↘' },
+                            ]}
+                        />
+                        <Slider label="Size" path="watermark.size" min={0.03} max={0.4} step={0.005} />
+                        <Slider label="Margin" path="watermark.margin" min={0} max={0.15} step={0.005} />
+                        <Slider label="Opacity" path="watermark.opacity" />
+                        <Slider label="Kick pulse" path="watermark.pulse" />
                     </>
                 )}
             </Section>

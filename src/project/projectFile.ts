@@ -12,7 +12,7 @@ interface ProjectFileV2 {
 }
 
 export function assetIds(p: Project): (string | null)[] {
-    const ids: (string | null)[] = [p.background.imageId, p.center.imageId];
+    const ids: (string | null)[] = [p.background.imageId, p.center.imageId, p.watermark.imageId];
     if (p.text.font.startsWith('Custom ')) ids.push(p.text.font.slice(7));
     return ids;
 }

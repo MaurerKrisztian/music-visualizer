@@ -85,7 +85,25 @@ function audioChunk(full: AudioBuffer, from: number, to: number): AudioBuffer {
     return out;
 }
 
-const yieldToUi = () => new Promise<void>((r) => setTimeout(r, 0));
+// MessageChannel yields are not throttled like timers in background tabs, so
+// an export keeps full speed when the user switches tabs.
+const channel = typeof MessageChannel !== 'undefined' ? new MessageChannel() : null;
+const yieldToUi = () =>
+    new Promise<void>((resolve) => {
+        if (!channel) return void setTimeout(resolve, 0);
+        channel.port1.onmessage = () => resolve();
+        channel.port2.postMessage(0);
+    });
+
+type WakeLockLike = { release: () => Promise<void> };
+async function requestWakeLock(): Promise<WakeLockLike | null> {
+    try {
+        const wl = (navigator as unknown as { wakeLock?: { request: (t: 'screen') => Promise<WakeLockLike> } }).wakeLock;
+        return wl ? await wl.request('screen') : null;
+    } catch {
+        return null;
+    }
+}
 
 export async function exportVideo(
     project: Project,
@@ -104,6 +122,8 @@ export async function exportVideo(
 
     const bitrate = targetBitrate(s);
     const codecs = await pickCodecs(s, bitrate);
+    const wakeLock = await requestWakeLock();
+    const baseTitle = document.title;
 
     const canvas = document.createElement('canvas');
     canvas.width = s.width;
@@ -191,6 +211,7 @@ export async function exportVideo(
                 const elapsed = (now - renderStart) / 1000;
                 const renderFps = (i + 1) / Math.max(1e-3, elapsed);
                 if (pv && deps.previewCanvas) pv.drawImage(canvas, 0, 0, deps.previewCanvas.width, deps.previewCanvas.height);
+                document.title = `${Math.floor(((i + 1) / totalFrames) * 100)}% · rendering · Canvasbeats`;
                 onProgress({
                     stage: 'rendering',
                     frame: i + 1,
@@ -232,6 +253,8 @@ export async function exportVideo(
         throw err;
     } finally {
         engine.dispose();
+        document.title = baseTitle;
+        void wakeLock?.release().catch(() => undefined);
     }
 }
 

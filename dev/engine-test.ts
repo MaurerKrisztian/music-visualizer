@@ -23,6 +23,20 @@ const log = (m: string) => { (document.getElementById('log') as HTMLElement).tex
   const engine = new Engine(canvas, { preserveDrawingBuffer: true, fontWeight, fontsVersion });
   engine.warmup();
   log('engine ok');
+  const wmCanvas = document.createElement('canvas');
+  wmCanvas.width = 256;
+  wmCanvas.height = 128;
+  const g = wmCanvas.getContext('2d')!;
+  g.fillStyle = '#ff2b6a';
+  g.beginPath();
+  g.roundRect(4, 4, 248, 120, 24);
+  g.fill();
+  g.fillStyle = '#fff';
+  g.font = 'bold 56px sans-serif';
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.fillText('HQ TV', 128, 66);
+  const wm = { id: 'wm', source: wmCanvas, width: 256, height: 128 };
 
   (window as unknown as Record<string, unknown>).renderAt = async (t: number, presetId: string | null, patch: unknown, w = 960, h = 540) => {
     let p = createDefaultProject();
@@ -40,7 +54,7 @@ const log = (m: string) => { (document.getElementById('log') as HTMLElement).tex
     const react = { ...DEFAULT_REACT, kickDecay: p.sync.kickDecay, spectrumRelease: p.spectrum.release, spectrum: { ...DEFAULT_REACT.spectrum, bars: p.spectrum.bars, minHz: p.spectrum.minHz, maxHz: p.spectrum.maxHz, gainDb: p.spectrum.gainDb, rangeDb: p.spectrum.rangeDb, tiltDb: p.spectrum.tiltDb } };
     for (let tt = Math.max(0, t - 2); tt <= t + 1e-6; tt += 1 / fps) {
       const f = fe.compute(tt, 1 / fps, react);
-      engine.render(p, f, { time: tt, dt: 1 / fps, rangeStart: 0, rangeEnd: buf.duration, frame: frame++ }, { background: null, logo: null });
+      engine.render(p, f, { time: tt, dt: 1 / fps, rangeStart: 0, rangeEnd: buf.duration, frame: frame++ }, { background: null, logo: null, watermark: (patch as { wm?: boolean })?.wm ? wm : null });
     }
     return { err: engine.gl.getError(), bpm: interp.bpm, drops: Array.from(interp.drops) };
   };

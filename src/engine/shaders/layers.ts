@@ -321,6 +321,21 @@ void main() {
     outColor = c;
 }`;
 
+export const IMAGE_SHADER = `${HEADER}
+uniform sampler2D uImg;
+uniform vec2 uImgPos;
+uniform vec2 uImgHalf;
+uniform float uImgOpacity;
+void main() {
+    vec2 p = centered(vUv);
+    vec2 q = (p - uImgPos) / (uImgHalf * 2.0) + 0.5;
+    if (q.x < 0.0 || q.x > 1.0 || q.y < 0.0 || q.y > 1.0) { outColor = vec4(0.0); return; }
+    q.y = 1.0 - q.y;
+    vec4 c = texture(uImg, q);
+    float a = c.a * uImgOpacity;
+    outColor = vec4(c.rgb * a, a);
+}`;
+
 export const PROGRESS_SHADER = `${HEADER}
 uniform float uProgress;
 uniform float uPrY;

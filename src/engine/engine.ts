@@ -8,7 +8,7 @@ import type { BackgroundMode, Project } from '../project/types';
 import { hash1, hexToRgb, noise1, rotateHue, type RGB } from './color';
 import { createDataTexture, createFullscreenVao, FULLSCREEN_VS, pickHdrFormat, Program, RenderTarget, type GL } from './gl';
 import { MAX_PARTICLES, ParticleSystem, PARTICLE_STRIDE } from './particles';
-import { CENTER_SHADER, PARTICLE_FS, PARTICLE_VS, PROGRESS_SHADER, SPECTRUM_SHADER, TEXT_SHADER } from './shaders/layers';
+import { CENTER_SHADER, IMAGE_SHADER, PARTICLE_FS, PARTICLE_VS, PROGRESS_SHADER, SPECTRUM_SHADER, TEXT_SHADER } from './shaders/layers';
 import { COPY_SHADER, DOWN_SHADER, FEEDBACK_SHADER, FINAL_SHADER, UP_SHADER } from './shaders/post';
 import { backgroundShader, OVERLAY_SHADER } from './shaders/scene';
 import { TextRenderer } from './text';
@@ -32,6 +32,7 @@ export interface FrameInfo {
 export interface EngineImages {
     background: ImageSource | null;
     logo: ImageSource | null;
+    watermark?: ImageSource | null;
 }
 
 export interface EngineOptions {
@@ -119,6 +120,7 @@ export class Engine {
         mk('center', CENTER_SHADER);
         mk('text', TEXT_SHADER);
         mk('progress', PROGRESS_SHADER);
+        mk('image', IMAGE_SHADER);
         mk('copy', COPY_SHADER);
         mk('feedback', FEEDBACK_SHADER);
         mk('down', DOWN_SHADER);
@@ -433,20 +435,53 @@ export class Engine {
 
         const tx = P.text;
         const weight = this.opts.fontWeight ? this.opts.fontWeight(tx.font) : '700';
-        const block = this.text.update(tx, P.meta, minDim, weight, this.opts.fontsVersion ? this.opts.fontsVersion() : 0);
+        const introLen = Math.max(0, tx.intro);
+        const block = this.text.update(tx, P.meta, minDim, weight, this.opts.fontsVersion ? this.opts.fontsVersion() : 0, introLen > 0 ? 2 : 1);
         if (block) {
             const lastKickIdx = f.beatIndex;
             const glitchOn = hash1(Math.floor(t * 9) + lastKickIdx * 0.37) < 0.2 + tx.glitch * 0.6;
             const dropB = f.dropAge < 50 ? f.drop * Math.exp(-f.dropAge * (1 / 0.28 - 1 / 1.6)) : 0;
-            const glitchT = tx.glitch * (Math.pow(kick, 3) * 0.9 + dropB * 0.9) * (glitchOn ? 1 : 0.15) * dyn;
+            let glitchT = tx.glitch * (Math.pow(kick, 3) * 0.9 + dropB * 0.9) * (glitchOn ? 1 : 0.15) * dyn;
+            let px = block.cx * hsx;
+            let py = block.cy * hsy;
+            let scale = 1 + tx.pulse * k15 * 0.07;
+            // intro title card: big in the centre, then glides into place
+            const tl = t - info.rangeStart;
+            if (introLen > 0 && tl >= 0 && tl < introLen + 0.9) {
+                const x = Math.min(1, Math.max(0, (tl - introLen + 0.1) / 0.9));
+                const e = x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+                const big = Math.min(1.9, (hsx * 1.6) / Math.max(1e-3, block.halfW * 2));
+                px = px * e;
+                py = py * e;
+                scale *= big + (1 - big) * e;
+                if (tl < 0.5) glitchT = Math.max(glitchT, (0.5 - tl) * 1.2);
+            }
             const tp = this.progs.text.use();
             this.common(tp, f, palette, move, spin, W, H)
                 .tex('uTextTex', block.texture)
-                .v2('uTextPos', block.cx * hsx, block.cy * hsy)
+                .v2('uTextPos', px, py)
                 .v2('uTextHalf', block.halfW, block.halfH)
-                .f('uTextScale', 1 + tx.pulse * k15 * 0.07)
-                .f('uGlitchT', glitchT)
+                .f('uTextScale', scale)
+                .f('uGlitchT', Math.min(1, glitchT))
                 .f('uGlitchSeed', Math.floor(t * 20));
+            this.draw();
+        }
+
+        const wm = P.watermark;
+        const wmImg = this.imageTexture(images.watermark ?? null);
+        if (wmImg && wm.opacity > 0.001) {
+            const halfH = (wm.size / 2) * (1 + wm.pulse * k15 * 0.08);
+            const halfW = halfH * (wmImg.w / Math.max(1, wmImg.h));
+            const sx = wm.corner === 'tl' || wm.corner === 'bl' ? -1 : 1;
+            const sy = wm.corner === 'tl' || wm.corner === 'tr' ? 1 : -1;
+            const baseH = wm.size / 2;
+            const baseW = baseH * (wmImg.w / Math.max(1, wmImg.h));
+            const ip = this.progs.image.use();
+            ip.v2('uRes', W, H)
+                .tex('uImg', wmImg.tex)
+                .v2('uImgPos', sx * (hsx - wm.margin - baseW), sy * (hsy - wm.margin - baseH))
+                .v2('uImgHalf', halfW, halfH)
+                .f('uImgOpacity', wm.opacity);
             this.draw();
         }
 

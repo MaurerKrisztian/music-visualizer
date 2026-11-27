@@ -38,16 +38,17 @@ export class TextRenderer {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     }
 
-    update(t: Project['text'], meta: Project['meta'], minDim: number, fontWeight: string, fontsVersion: number): TextBlock | null {
+    update(t: Project['text'], meta: Project['meta'], minDim: number, fontWeight: string, fontsVersion: number, oversample = 1): TextBlock | null {
         const line1 = (t.uppercase ? meta.artist.toUpperCase() : meta.artist).trim();
         const line2 = (t.uppercase ? meta.title.toUpperCase() : meta.title).trim();
         if (!t.enabled || (!line1 && !line2)) return null;
-        const key = JSON.stringify([line1, line2, t.font, t.size, t.subSize, t.spacing, t.color, t.subColor, t.stroke, t.strokeColor, t.glow, t.align, t.x, t.y, Math.round(minDim), fontWeight, fontsVersion]);
+        const key = JSON.stringify([line1, line2, t.font, t.size, t.subSize, t.spacing, t.color, t.subColor, t.stroke, t.strokeColor, t.glow, t.align, t.x, t.y, Math.round(minDim), fontWeight, fontsVersion, oversample]);
+        const res = minDim * oversample;
         if (key === this.key && this.block) return this.block;
         this.key = key;
 
         const ctx = this.ctx;
-        const px1 = Math.max(4, t.size * minDim);
+        const px1 = Math.max(4, t.size * res);
         const px2 = Math.max(4, px1 * t.subSize);
         const glow = t.glow * px1 * 0.5;
         const stroke = t.stroke * px1 * 0.08;
@@ -118,8 +119,8 @@ export class TextRenderer {
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.canvas as TexImageSource);
         gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
 
-        const halfW = W / minDim / 2;
-        const halfH = H / minDim / 2;
+        const halfW = W / res / 2;
+        const halfH = H / res / 2;
         const cx = t.align === 'left' ? t.x + halfW : t.align === 'right' ? t.x - halfW : t.x;
         this.block = { texture: this.texture, halfW, halfH, cx, cy: t.y };
         return this.block;

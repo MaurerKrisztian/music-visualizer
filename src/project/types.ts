@@ -126,6 +126,16 @@ export interface Project {
         pulse: number;
         glitch: number;
         align: 'left' | 'center' | 'right';
+        /** seconds the title is shown big in the centre at the start (0 = off) */
+        intro: number;
+    };
+    watermark: {
+        imageId: string | null;
+        corner: 'tl' | 'tr' | 'bl' | 'br';
+        size: number;
+        margin: number;
+        opacity: number;
+        pulse: number;
     };
     fx: {
         bloom: number;

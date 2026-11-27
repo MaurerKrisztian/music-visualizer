@@ -26,7 +26,7 @@ export function exportAspect(p: Project): number {
 }
 
 export function engineImages(p: Project): EngineImages {
-    return { background: assets.image(p.background.imageId), logo: assets.image(p.center.imageId) };
+    return { background: assets.image(p.background.imageId), logo: assets.image(p.center.imageId), watermark: assets.image(p.watermark.imageId) };
 }
 
 class PreviewController {

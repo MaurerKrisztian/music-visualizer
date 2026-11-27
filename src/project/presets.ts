@@ -218,5 +218,7 @@ export function applyPreset(current: Project, preset: Preset): Project {
     fresh.export = { ...current.export };
     fresh.background.imageId = current.background.imageId;
     fresh.center.imageId = current.center.imageId;
+    fresh.watermark = { ...current.watermark };
+    fresh.text.intro = current.text.intro;
     return fresh;
 }

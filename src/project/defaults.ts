@@ -74,9 +74,11 @@ export function createDefaultProject(): Project {
             strokeColor: '#000000',
             glow: 0.5,
             pulse: 0.35,
-            glitch: 0.35,
+            glitch: 0.25,
             align: 'center',
+            intro: 3,
         },
+        watermark: { imageId: null, corner: 'tr', size: 0.11, margin: 0.035, opacity: 0.85, pulse: 0.25 },
         fx: {
             bloom: 0.75,
             bloomThreshold: 0.55,

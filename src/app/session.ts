@@ -234,7 +234,7 @@ export async function restoreSession(): Promise<void> {
         restored = null;
     }
     if (restored) {
-        await assets.restore([restored.background.imageId, restored.center.imageId, restored.text.font.startsWith('Custom ') ? restored.text.font.slice(7) : null]);
+        await assets.restore([restored.background.imageId, restored.center.imageId, restored.watermark.imageId, restored.text.font.startsWith('Custom ') ? restored.text.font.slice(7) : null]);
         projectStore.set(restored, false);
     } else {
         projectStore.set(createDefaultProject(), false);
