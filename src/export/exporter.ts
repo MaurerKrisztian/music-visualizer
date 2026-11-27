@@ -135,7 +135,6 @@ export async function exportVideo(
     canvas.height = s.height;
     const engine = new Engine(canvas, { preserveDrawingBuffer: true, loseContextOnDispose: true, fontWeight: deps.fontWeight, fontsVersion: deps.fontsVersion });
     engine.setSize(s.width, s.height);
-    engine.warmup();
     engine.reset(1234);
 
     let bytes = 0;

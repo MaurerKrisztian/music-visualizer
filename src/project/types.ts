@@ -69,6 +69,9 @@ export interface Project {
         smoke: number;
         /** base flame height 0..1 */
         fireHeight: number;
+        /** festival crowd silhouettes in the foreground */
+        crowd: number;
+        crowdHeight: number;
     };
     spectrum: {
         style: SpectrumStyle;

@@ -13,6 +13,7 @@ const cache = new Map<string, string>();
 const listeners = new Set<() => void>();
 let cacheKey = '';
 let running = false;
+let pending = false;
 let version = 0;
 
 export function presetThumb(id: string): string | undefined {
@@ -31,7 +32,11 @@ export function subscribeThumbs(fn: () => void): () => void {
 export async function renderThumbs(): Promise<void> {
     const st = appStore.get();
     const channels = getChannels();
-    if (!st.env || !st.interp || !st.track || channels.length === 0 || running) return;
+    if (!st.env || !st.interp || !st.track || channels.length === 0) return;
+    if (running) {
+        pending = true;
+        return;
+    }
     const p0 = projectStore.get();
     const key = [st.track.name, st.track.duration, p0.meta.artist, p0.meta.title, p0.background.imageId, p0.center.imageId, p0.text.font].join('|');
     if (key === cacheKey) return;
@@ -74,5 +79,9 @@ export async function renderThumbs(): Promise<void> {
     } finally {
         engine?.dispose();
         running = false;
+        if (pending) {
+            pending = false;
+            setTimeout(() => void renderThumbs(), 50);
+        }
     }
 }

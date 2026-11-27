@@ -22,7 +22,7 @@ export function createDefaultProject(): Project {
             brightness: 0.8,
             react: 0.7,
         },
-        overlays: { fire: 0, lasers: 0.35, smoke: 0.25, fireHeight: 0.3 },
+        overlays: { fire: 0, lasers: 0.35, smoke: 0.25, fireHeight: 0.3, crowd: 0, crowdHeight: 0.4 },
         spectrum: {
             style: 'radial-bars',
             bars: 72,

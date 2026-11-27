@@ -223,6 +223,7 @@ export function ScenePanel() {
     const mode = useProject((p) => p.background.mode);
     const dropColors = useProject((p) => p.palette.dropColors);
     const fire = useProject((p) => p.overlays.fire);
+    const crowd = useProject((p) => p.overlays.crowd);
     return (
         <div className="panel">
             <Section title="Colours">
@@ -288,6 +289,8 @@ export function ScenePanel() {
                 <Slider label="Smoke" path="overlays.smoke" />
                 <Slider label="Fire & pyro" path="overlays.fire" hint="Flames at the bottom; pyro jets fire on kicks" />
                 {fire > 0 && <Slider label="Flame height" path="overlays.fireHeight" />}
+                <Slider label="Festival crowd" path="overlays.crowd" hint="Backlit crowd silhouettes in the foreground; people jump on the kicks" />
+                {crowd > 0 && <Slider label="Crowd height" path="overlays.crowdHeight" />}
             </Section>
         </div>
     );

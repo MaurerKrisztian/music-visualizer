@@ -98,7 +98,11 @@ export function reactOptions(p: Project): ReactOptions {
 
 /** Splits "Artist - Title.mp3" into its parts. */
 export function parseTrackName(fileName: string): { artist: string; title: string } | null {
-    const base = fileName.replace(/\.[a-z0-9]{2,5}$/i, '').replace(/_/g, ' ').trim();
+    const base = fileName
+        .replace(/\.[a-z0-9]{2,5}$/i, '')
+        .replace(/_/g, ' ')
+        .replace(/^\s*\d{1,3}\s*[.)\-–]\s*/, '')
+        .trim();
     const m = /^(.+?)\s+[-–—]\s+(.+)$/.exec(base);
     if (m) return { artist: m[1].trim(), title: m[2].trim() };
     return base ? { artist: '', title: base } : null;

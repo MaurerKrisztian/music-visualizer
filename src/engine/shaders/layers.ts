@@ -322,6 +322,76 @@ void main() {
     outColor = c * uTextAlpha;
 }`;
 
+export const CROWD_SHADER = `${HEADER}
+uniform float uCrowd;
+uniform float uCrowdH;
+float sdBox2(vec2 p, vec2 b, float r) {
+    vec2 d = abs(p) - b + r;
+    return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0) - r;
+}
+float sdSeg(vec2 p, vec2 a, vec2 b) {
+    vec2 pa = p - a, ba = b - a;
+    float h = clamp(dot(pa, ba) / max(dot(ba, ba), 1e-9), 0.0, 1.0);
+    return length(pa - ba * h);
+}
+// one row of people; returns signed distance (negative inside)
+float crowdRow(vec2 p, float rowSeed, float scale, float baseY) {
+    float spacing = 0.06 * scale;
+    float x = p.x / spacing + rowSeed * 0.37;
+    float id = floor(x);
+    float d = 1e9;
+    for (int k = -1; k <= 1; k++) {
+        float cid = id + float(k);
+        float h = hash11(cid * 1.37 + rowSeed * 17.0);
+        float h2 = hash11(cid * 3.11 + rowSeed * 5.0);
+        float cx = (cid + 0.5 + (h2 - 0.5) * 0.5 - rowSeed * 0.37) * spacing;
+        float jump = uKick * step(0.45, h2) * (0.012 + 0.02 * h) * scale + uBeatPulse * 0.004 * scale;
+        float by = baseY + (h - 0.5) * 0.02 * scale + jump;
+        vec2 q = vec2(p.x - cx, p.y - by);
+        float headR = 0.0125 * scale * (0.9 + 0.25 * h2);
+        float dHead = length(q - vec2(0.0, headR * 0.4)) - headR;
+        float dBody = sdBox2(q - vec2(0.0, -0.06 * scale), vec2(0.024 * scale, 0.055 * scale), 0.014 * scale);
+        float dPerson = min(dHead, dBody);
+        if (h > 0.5) {
+            float sway = sin(uBeat * TAU + h * 9.0) * 0.006 + sin(uTime * 1.3 + h * 20.0) * 0.003;
+            vec2 sh = vec2(0.017, -0.016) * scale;
+            vec2 hand = sh + vec2(0.012 + sway / scale, 0.072) * scale;
+            dPerson = min(dPerson, sdSeg(q, sh, hand) - 0.0042 * scale);
+            dPerson = min(dPerson, length(q - hand) - 0.006 * scale);
+            if (h > 0.78) {
+                vec2 sh2 = vec2(-sh.x, sh.y);
+                vec2 hand2 = sh2 + vec2(-0.012 + sway / scale, 0.072) * scale;
+                dPerson = min(dPerson, sdSeg(q, sh2, hand2) - 0.0042 * scale);
+                dPerson = min(dPerson, length(q - hand2) - 0.006 * scale);
+            }
+        }
+        d = min(d, dPerson);
+    }
+    // the crowd continues below the shoulders
+    d = min(d, p.y - (baseY - 0.075 * scale));
+    return d;
+}
+void main() {
+    vec2 p = centered(vUv);
+    vec2 hs = halfSize();
+    float bottom = -hs.y;
+    float aa = px() * 1.2;
+    float hgt = uCrowdH;
+    // back row (smaller, lit a little), then front row
+    float dBack = crowdRow(p, 1.0, 0.8 * (0.85 + hgt), bottom + (0.12 + 0.1 * hgt));
+    float dFront = crowdRow(p, 0.0, 1.05 * (0.85 + hgt), bottom + (0.05 + 0.07 * hgt));
+    float aBack = smoothstep(aa, -aa, dBack);
+    float aFront = smoothstep(aa, -aa, dFront);
+    vec3 rimCol = mix(uColA, uColC, 0.5 + 0.5 * sin(p.x * 3.0 + uTime * 0.5));
+    float rimB = smoothstep(-0.004, 0.0, dBack) * aBack;
+    float rimF = smoothstep(-0.003, 0.0, dFront) * aFront;
+    vec3 back = vec3(0.025, 0.025, 0.04) + rimCol * rimB * (0.25 + 0.6 * uKick);
+    vec3 front = vec3(0.0) + rimCol * rimF * (0.15 + 0.4 * uKick);
+    vec3 col = back * aBack * (1.0 - aFront) + front * aFront;
+    float a = max(aBack, aFront) * uCrowd;
+    outColor = vec4(col * uCrowd, a);
+}`;
+
 export const IMAGE_SHADER = `${HEADER}
 uniform sampler2D uImg;
 uniform vec2 uImgPos;

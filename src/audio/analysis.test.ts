@@ -67,6 +67,23 @@ describe('analysis', () => {
         expect(interp.drops.length).toBeGreaterThanOrEqual(1);
     });
 
+    it('handles rawstyle kicks with tails that run into the next kick', () => {
+        const s = synthTrack({
+            bpm: 155,
+            kickTail: 0.5,
+            parts: [
+                { bars: 8, kicks: true, hats: true, reverseBass: true, pads: true },
+                { bars: 8, kicks: false, pads: true, build: true },
+                { bars: 16, kicks: true, hats: true, reverseBass: true, pads: true },
+            ],
+        });
+        const { interp } = analyzeMono(s.mono, s.sampleRate);
+        const m = matchKicks(interp.kicks, s.kickTimes);
+        expect(m.recall).toBeGreaterThan(0.95);
+        expect(Math.abs(interp.bpm - 155)).toBeLessThan(0.2);
+        expect(interp.drops.length).toBeGreaterThanOrEqual(1);
+    });
+
     it('handles terror tempo (250 BPM)', () => {
         const s = synthTrack({ bpm: 250, kickTail: 0.2, parts: [{ bars: 32, kicks: true, hats: true }] });
         const { interp } = analyzeMono(s.mono, s.sampleRate);

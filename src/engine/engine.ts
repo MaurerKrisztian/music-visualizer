@@ -8,7 +8,7 @@ import type { BackgroundMode, Project } from '../project/types';
 import { hash1, hexToRgb, noise1, rotateHue, type RGB } from './color';
 import { createDataTexture, createFullscreenVao, FULLSCREEN_VS, pickHdrFormat, Program, RenderTarget, type GL } from './gl';
 import { MAX_PARTICLES, ParticleSystem, PARTICLE_STRIDE } from './particles';
-import { CENTER_SHADER, IMAGE_SHADER, PARTICLE_FS, PARTICLE_VS, PROGRESS_SHADER, SPECTRUM_SHADER, TEXT_SHADER } from './shaders/layers';
+import { CENTER_SHADER, CROWD_SHADER, IMAGE_SHADER, PARTICLE_FS, PARTICLE_VS, PROGRESS_SHADER, SPECTRUM_SHADER, TEXT_SHADER } from './shaders/layers';
 import { COPY_SHADER, DOWN_SHADER, FEEDBACK_SHADER, FINAL_SHADER, UP_SHADER } from './shaders/post';
 import { backgroundShader, OVERLAY_SHADER } from './shaders/scene';
 import { TextRenderer } from './text';
@@ -122,6 +122,7 @@ export class Engine {
         mk('text', TEXT_SHADER);
         mk('progress', PROGRESS_SHADER);
         mk('image', IMAGE_SHADER);
+        mk('crowd', CROWD_SHADER);
         mk('copy', COPY_SHADER);
         mk('feedback', FEEDBACK_SHADER);
         mk('down', DOWN_SHADER);
@@ -349,6 +350,14 @@ export class Engine {
                 .f('uFireH', ov.fireHeight)
                 .f('uLaserAmt', ov.lasers * (0.6 + 0.4 * dyn))
                 .f('uSmokeAmt', ov.smoke);
+            this.draw();
+        }
+
+        if (ov.crowd > 0.001) {
+            gl.enable(gl.BLEND);
+            gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+            const cp = this.progs.crowd.use();
+            this.common(cp, f, palette, move, spin, W, H).f('uCrowd', Math.min(1, ov.crowd)).f('uCrowdH', ov.crowdHeight);
             this.draw();
         }
 

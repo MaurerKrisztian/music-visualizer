@@ -103,7 +103,7 @@ export const PRESETS: Preset[] = [
         patch: {
             palette: { a: '#ffb300', b: '#ffffff', c: '#2979ff', hueSpeed: 0, dropHueShift: 0 },
             background: { mode: 'lasers', speed: 0.5, scale: 0.5, detail: 0.55, twist: 0.6, brightness: 0.9, react: 0.7 },
-            overlays: { fire: 0.7, fireHeight: 0.22, smoke: 0.45, lasers: 0 },
+            overlays: { fire: 0.7, fireHeight: 0.22, smoke: 0.45, lasers: 0, crowd: 1, crowdHeight: 0.35 },
             spectrum: { style: 'radial-wave', layers: 4, radius: 0.15, height: 0.12, colorMode: 'palette', kickScale: 0.6 },
             center: { enabled: true, radius: 0.15, ring: 0.5, ringGlow: 0.8, shockRings: 0.5 },
             particles: { mode: 'sparks', count: 400, size: 0.4, speed: 0.6, kickBoost: 0.8, colorMode: 'fire' },
