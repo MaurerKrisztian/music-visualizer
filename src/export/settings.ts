@@ -50,8 +50,9 @@ export interface ExportDeps {
     previewCanvas?: HTMLCanvasElement | null;
 }
 
+/** Offline export needs video WebCodecs; audio can fall back to the WASM AAC encoder. */
 export function supportsWebCodecs(): boolean {
-    return typeof window !== 'undefined' && 'VideoEncoder' in window && 'AudioEncoder' in window && 'VideoFrame' in window;
+    return typeof window !== 'undefined' && 'VideoEncoder' in window && 'VideoFrame' in window;
 }
 
 const BPP: Record<ExportSettings['quality'], number> = { standard: 0.1, high: 0.16, max: 0.25 };

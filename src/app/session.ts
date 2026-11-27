@@ -105,6 +105,7 @@ export function parseTrackName(fileName: string): { artist: string; title: strin
 
 export async function loadAudio(blob: Blob, name: string, opts: { isDemo?: boolean; persist?: boolean; autoMeta?: boolean } = {}): Promise<void> {
     const token = ++loadToken;
+    if (blob.size > 250 * 1024 * 1024) toast('Very large file: long DJ mixes can run out of browser memory. Tracks under ~20 minutes work best.');
     player.pause();
     appStore.update((s) => {
         s.stage = 'decoding';

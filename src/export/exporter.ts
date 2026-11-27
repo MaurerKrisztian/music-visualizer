@@ -41,19 +41,24 @@ async function pickCodecs(s: ExportSettings, bitrate: number): Promise<{ video: 
     }
     if (!video) throw new Error(`This browser cannot encode ${s.width}x${s.height} video in ${s.format.toUpperCase()}. Try a lower resolution or the other format.`);
 
+    const can = async (c: AudioCodec, bitrate: number) => {
+        try {
+            return await canEncodeAudio(c, { numberOfChannels: 2, sampleRate: 48000, bitrate });
+        } catch {
+            return false;
+        }
+    };
     let audio: AudioCodec;
     if (s.format === 'mp4') {
-        if (await canEncodeAudio('aac', { numberOfChannels: 2, sampleRate: 48000, bitrate: 320_000 })) {
-            audio = 'aac';
-        } else {
-            // Linux / Firefox: no native AAC encoder, use the WASM one.
+        if (!(await can('aac', 320_000))) {
+            // Linux, Firefox, older Safari: no native AAC encoder, use the WASM one.
             const { registerAacEncoder } = await import('@mediabunny/aac-encoder');
             registerAacEncoder();
-            audio = 'aac';
         }
+        audio = 'aac';
     } else {
         audio = 'opus';
-        if (!(await canEncodeAudio('opus', { numberOfChannels: 2, sampleRate: 48000 }))) throw new Error('This browser cannot encode Opus audio. Try MP4.');
+        if (!(await can('opus', 256_000))) throw new Error('This browser cannot encode Opus audio for WebM. Choose MP4 instead.');
     }
     return { video, audio };
 }

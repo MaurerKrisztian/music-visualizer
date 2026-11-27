@@ -121,7 +121,7 @@ export function ExportPanel() {
                 setJob((j) => (j ? { ...j, result, url } : j));
             } else {
                 const blob = await recordRealtime({ width: res.w, height: res.h, fps: ex.fps, start, end, bitrate }, (p) => setJob((j) => (j ? { ...j, realtime: p } : j)), abort.signal);
-                const name = fileName.replace(/\.mp4$/, '.webm');
+                const name = fileName.replace(/\.(mp4|webm)$/, blob.type.includes('mp4') ? '.mp4' : '.webm');
                 downloadBlob(blob, name);
                 setJob((j) => (j ? { ...j, url: URL.createObjectURL(blob), result: { blob, fileName: name, savedToDisk: false, videoCodec: 'vp9', audioCodec: 'opus', bytes: blob.size, seconds: len } } : j));
             }
@@ -234,7 +234,7 @@ export function ExportPanel() {
                 {!webcodecs && (
                     <Hint>
                         {supportsRealtime()
-                            ? 'This browser has no WebCodecs, so the video is recorded in real time as WebM. For frame-perfect MP4 export use a recent Chrome, Edge or Safari.'
+                            ? 'This browser has no WebCodecs, so the video is recorded in real time. For frame-perfect export use a recent Chrome, Edge, Firefox or Safari.'
                             : 'Video export is not supported in this browser.'}
                     </Hint>
                 )}

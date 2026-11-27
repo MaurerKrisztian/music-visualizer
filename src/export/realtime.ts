@@ -21,7 +21,7 @@ export async function recordRealtime(
     const audio = player.getRecordStream();
     const video = canvas.captureStream(opts.fps);
     const stream = new MediaStream([...video.getVideoTracks(), ...audio.getAudioTracks()]);
-    const mime = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'].find((m) => MediaRecorder.isTypeSupported(m)) ?? '';
+    const mime = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4'].find((m) => MediaRecorder.isTypeSupported(m)) ?? '';
     const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: opts.bitrate, audioBitsPerSecond: 256_000 });
     const chunks: Blob[] = [];
     rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
@@ -52,5 +52,5 @@ export async function recordRealtime(
         preview.invalidate();
     }
     if (signal.aborted) throw new Error('Export cancelled');
-    return new Blob(chunks, { type: 'video/webm' });
+    return new Blob(chunks, { type: rec.mimeType || mime || 'video/webm' });
 }
